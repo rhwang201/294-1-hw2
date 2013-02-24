@@ -18,7 +18,10 @@ import BIDMat.Plotting._
 
 object RegressionModel {
 
-  val data_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
+  val r_path = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
+  val d_path = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
+
+  val data_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
