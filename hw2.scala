@@ -5,7 +5,7 @@
 /* Hey David:
  *   To run this first "source path.sh" from within the BIDMat directory.
  *   Then, compile as normally.  Finally run
- *   "scala -cp $BIDMAT_LIBS class_name
+ *   "scala -J-Xmx32G -cp $BIDMAT_LIBS class_name
  */
 
 import scala.io._
@@ -23,26 +23,39 @@ import BIDMat.Plotting._
 object RegressionModel {
 
   // File paths
-  val data_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
+  val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
+  val mat_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
+  var X = zeros(1,1)
   var x_squared = zeros(1,1)
-  var y_times_x = zeros(1,1)
+  var y_times_X = zeros(1,1)
 
   var d = 0
 
   /** Processes the provided tokenized mat file into X and saves it. */
   def process() = {
-    //val tokens:IMat = load(data_file, "tokens")
-    //val smap:CSMat=load(data_file, "smap")
-    //val scnt:IMat=load(data_file, "scnt")
+    val tokens:IMat = load(mat_file, "tokens")
+    println("loaded tokens")
+    val smap:CSMat=load(mat_file, "smap")
+    println("loaded smap")
+    val scnt:IMat=load(mat_file, "scnt")
+    println("loaded scnt")
 
-    // Let's try printing out tokens
-    //println(smap{tokens(3,0)})
-    //println(smap{tokens(3,1)})
-    //println(smap{tokens(3,2)})
-    //println(smap{tokens(3,3)})
-    //println(smap{tokens(3,4)})
+    d = scnt.nrows
+    val num_tokens = tokens.ncols
+    var review_i = -1
+    var cur_col:IMat = izeros(1,1)
+    var cur_tid:Int = 0
+
+    // Make sparse matrix X via concatenation of columns
+    for (i <- 0 to num_tokens-1) {
+      cur_col = tokens(?, i)
+      cur_tid = cur_col(2,0)
+      if (smap{cur_tid} == "<review>") {
+        review_i += 1
+      }
+    }
 
     //saveAs(processed_x_path, X, "X", Y, "labels")
   }
@@ -55,30 +68,31 @@ object RegressionModel {
   /** Calculates the L2 gradient at beta, where
     *   L_2(beta) = E[-2y^T X + 2X^T X beta]
     */
-  def l2_gradient(beta: BIDMat.SMat):Double = {
-    return 2*x_squared * beta - 2*y_times_X
+  def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
+    return 2*x_squared*beta - 2*y_times_X
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
-  def train() = {
+  def train():BIDMat.FMat = {
     val gamma = 0.25
 
     // Perform SGD
     val sgd_tolerance = 0.0001
-    var beta = zeros(1,d)
+    var beta:BIDMat.FMat = zeros(1,d)
+    var beta_prev:BIDMat.FMat = zeros(1,d)
+
     do {
       beta_prev = beta
       beta = beta - gamma * l2_gradient(beta)
-    } while (beta - beta_prev > sgd_tolerance ||
-        beta_prev - beta> sgd_tolerance)
+    } while (true)
 
     return beta
   }
 
   /** Returns the vector of predictions for input X, an nxd matrix,
     *   y_hat = beta_hat * X_hat */
-  def predict(beta: BIDMat.SMat, x: BIDMat.SMat) = {
+  def predict(beta: BIDMat.FMat, x: BIDMat.FMat):BIDMat.FMat = {
     return beta * x
   }
 
@@ -96,8 +110,18 @@ object RegressionModel {
   }
 
   def main(args: Array[String]) = {
-    var a = new DataInputStream(new FileInputStream("tokens.bin"))
-    var b = java.lang.Integer.reverseBytes(a.readInt())
+    val tokens:IMat = load(mat_file, "tokens")
+    println("loaded tokens")
+    val smap:CSMat=load(mat_file, "smap")
+    println("loaded smap")
+
+    println(smap{tokens(3,0)})
+    println(smap{tokens(3,1)})
+    println(smap{tokens(3,2)})
+    println(smap{tokens(3,3)})
+    println(smap{tokens(3,4)})
+    println(smap{tokens(3,5)})
+    println(smap{tokens(3,6)})
     //process()
     //cross_validate(10)
   }
