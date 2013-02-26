@@ -2,13 +2,17 @@
 /* CS294-1 */
 /* Spring 2013 */
 
+/* Hey David:
+ *   To run this first "source path.sh" from within the BIDMat directory.
+ *   Then, compile as normally.  Finally run
+ *   "scala -cp $BIDMAT_LIBS class_name
+ */
+
 import scala.io._
 import scala.sys.process._
 import scala.collection.mutable
 import scala.math
-
 import java.io._
-
 import BIDMat.{Mat, FMat, DMat, IMat, CMat, BMat, CSMat, SMat, SDMat, GMat, GIMat, GSMat, HMat}
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
@@ -18,9 +22,9 @@ import BIDMat.Plotting._
 
 object RegressionModel {
 
+  // File paths
   val data_file = "/Users/rhwang/classes/294-1/hw2/data/tokenized.mat"
   //val data_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
-
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
   /** Processes the provided tokenized mat file into X and saves it. */
@@ -60,10 +64,11 @@ object RegressionModel {
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
+    // Partition data
     for (i <- 1 to k) {
-      // Split
       // Train
       // Test
+      // Save accuracy measures
     }
     // Compute measures
     return 0
