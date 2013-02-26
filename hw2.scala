@@ -2,10 +2,9 @@
 /* CS294-1 */
 /* Spring 2013 */
 
-/* Hey David:
- *   To run this first "source path.sh" from within the BIDMat directory.
- *   Then, compile as normally.  Finally run
- *   "scala -J-Xmx32G -cp $BIDMAT_LIBS class_name
+/*   To run this, first "source path.sh" from within the BIDMat directory.
+ *   Then, compile with "bin/sbt compile".  Finally run
+ *   "scala -J-Xmx32G -cp $BIDMAT_LIBS RegressionModel"
  */
 
 import scala.io._
@@ -45,15 +44,23 @@ object RegressionModel {
     d = scnt.nrows
     val num_tokens = tokens.ncols
     var review_i = -1
+    var cur_token_id:Int = 0
+    var cur_string: String = ""
+
     var cur_col:IMat = izeros(1,1)
-    var cur_tid:Int = 0
 
     // Make sparse matrix X via concatenation of columns
-    for (i <- 0 to num_tokens-1) {
+    for (var i <- 1 to num_tokens-1) {
       cur_col = tokens(?, i)
-      cur_tid = cur_col(2,0)
-      if (smap{cur_tid} == "<review>") {
+      cur_token_id = cur_col(2,0)
+      cur_string = smap{cur_token_id}
+      if (cur_string == "<review>") {
         review_i += 1
+        // Make new constructors to Sparse Mat
+      } else if (cur_string == "</review>") {
+        // Concat current Sparse Mat to X
+      } else if (cur_string == "<rating>") {
+        // Look up next token
       }
     }
 
@@ -110,18 +117,6 @@ object RegressionModel {
   }
 
   def main(args: Array[String]) = {
-    val tokens:IMat = load(mat_file, "tokens")
-    println("loaded tokens")
-    val smap:CSMat=load(mat_file, "smap")
-    println("loaded smap")
-
-    println(smap{tokens(3,0)})
-    println(smap{tokens(3,1)})
-    println(smap{tokens(3,2)})
-    println(smap{tokens(3,3)})
-    println(smap{tokens(3,4)})
-    println(smap{tokens(3,5)})
-    println(smap{tokens(3,6)})
     //process()
     //cross_validate(10)
   }
