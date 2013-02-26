@@ -42,27 +42,63 @@ object RegressionModel {
     println("loaded scnt")
 
     d = scnt.nrows
+    var cur_rating = 0
     val num_tokens = tokens.ncols
     var review_i = -1
-    var cur_token_id:Int = 0
-    var cur_string: String = ""
-
-    var cur_col:IMat = izeros(1,1)
+    var pre_i = 0
+    var icol_row:IMat = izeros(0, 0)
+    var icol_col:IMat = izeros(0, 0)
+    var vals:FMat = zeros(0, 0)
+    var cur_counts = mutable.Map.empty[Int, Int]
 
     // Make sparse matrix X via concatenation of columns
-    for (var i <- 1 to num_tokens-1) {
-      cur_col = tokens(?, i)
-      cur_token_id = cur_col(2,0)
-      cur_string = smap{cur_token_id}
+    while (true) {
+      var cur_col:IMat = tokens(?,pre_i)
+      var cur_token_id:Int = cur_col(2,0) - 1
+      var cur_string: String = smap{cur_token_id}
+
+      // New review
       if (cur_string == "<review>") {
         review_i += 1
-        // Make new constructors to Sparse Mat
+        cur_counts = mutable.Map.empty[Int, Int]
+      // Finished review
       } else if (cur_string == "</review>") {
-        // Concat current Sparse Mat to X
+        icol_col = izeros(cur_counts.size, 0)
+        cur_counts.foreach(t => {
+          icol_row = icol_row on t._1
+          vals = vals on t._2
+        })
+        var X:SMat = sparse(icol_row, icol_col, vals, d, 1)
+      // Found rating
       } else if (cur_string == "<rating>") {
-        // Look up next token
+        cur_rating = Integer.parseInt(smap{cur_token_id + 1})
+      // Normal token
+      } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
+          cur_string != "<product_type>" && cur_string != "</product_type>" &&
+          cur_string != "<asin>" && cur_string != "</asin>") {
+        if (!cur_counts.keySet.exists(_ == cur_token_id)) {
+          cur_counts(cur_token_id) = 1
+        } else {
+          cur_counts(cur_token_id) += 1
+        }
       }
+
+      pre_i += 1
     }
+
+    //for (var i <- pre_i+1 to num_tokens-1) {
+    //  cur_col = tokens(?, i)
+    //  cur_token_id = cur_col(2,0)
+    //  cur_string = smap{cur_token_id - 1}
+    //  if (cur_string == "<review>") {
+    //    review_i += 1
+    //    // Make new constructors to Sparse Mat
+    //  } else if (cur_string == "</review>") {
+    //    // Concat current Sparse Mat to X
+    //  } else if (cur_string == "<rating>") {
+    //    cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
+    //  }
+    //}
 
     //saveAs(processed_x_path, X, "X", Y, "labels")
   }
