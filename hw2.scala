@@ -103,11 +103,11 @@ object RegressionModel {
     }}
 
     for (i <- 0 to pre_i) {
-      println(smat{tokens(2,i)})
+      println(smap{tokens(2,i)})
     }
     println("next review\n\n")
     for (i <- pre_i to 2*pre_i) {
-      println(smat{tokens(2,i)})
+      println(smap{tokens(2,i)})
     }
     X
     //for (i <- pre_i+1 to num_tokens-1) {
