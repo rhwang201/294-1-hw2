@@ -87,6 +87,7 @@ object RegressionModel {
       pre_i += 1
     }
 
+    X
     //for (var i <- pre_i+1 to num_tokens-1) {
     //  cur_col = tokens(?, i)
     //  cur_token_id = cur_col(2,0)
@@ -154,11 +155,7 @@ object RegressionModel {
   }
 
   def main(args: Array[String]) = {
-    //val tokens:IMat = load(mat_file, "tokens")
-    //val smap:CSMat=load(mat_file, "smap")
-    //val scnt:IMat =load(mat_file, "scnt")
-
-    //process()
+    process()
     //cross_validate(10)
   }
 
