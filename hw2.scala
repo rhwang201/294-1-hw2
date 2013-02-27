@@ -70,13 +70,18 @@ object RegressionModel {
           icol_row = icol_row on t._1
           vals = vals on t._2
         })
+        println(icol_row.nrows)
+        println(icol_col.nrows)
+        println(vals.nrows)
         var X:SMat = sparse(icol_row, icol_col, vals, d, 1)
         break
       // Found rating
       } else if (cur_string == "<rating>") {
         println(smap{cur_token_id})
         println(smap{cur_token_id+1})
-        cur_rating = Integer.parseInt(smap{cur_token_id}) // Took out + 1
+        if (smap{cur_token_id + 1} != "</rating>") {
+          cur_rating = Integer.parseInt(smap{cur_token_id + 1}) // Took out + 1
+        }
       // Normal token
       } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
           cur_string != "<product_type>" && cur_string != "</product_type>" &&
