@@ -93,19 +93,21 @@ object RegressionModel {
     }}
 
     X
-    //for (var i <- pre_i+1 to num_tokens-1) {
-    //  cur_col = tokens(?, i)
-    //  cur_token_id = cur_col(2,0)
-    //  cur_string = smap{cur_token_id - 1}
-    //  if (cur_string == "<review>") {
-    //    review_i += 1
-    //    // Make new constructors to Sparse Mat
-    //  } else if (cur_string == "</review>") {
-    //    // Concat current Sparse Mat to X
-    //  } else if (cur_string == "<rating>") {
-    //    cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
-    //  }
-    //}
+    for (var i <- pre_i+1 to num_tokens-1) {
+      cur_col = tokens(?, i)
+      cur_token_id = cur_col(2,0)
+      cur_string = smap{cur_token_id - 1}
+
+      // New review
+      if (cur_string == "<review>") {
+        review_i += 1
+        cur_counts = mutable.Map.empty[Int, Int]
+      } else if (cur_string == "</review>") {
+        // Concat current Sparse Mat to X
+      } else if (cur_string == "<rating>") {
+        cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
+      }
+    }
 
     //saveAs(processed_x_path, X, "X", Y, "labels")
   }
