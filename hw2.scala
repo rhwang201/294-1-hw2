@@ -11,6 +11,7 @@ import scala.io._
 import scala.sys.process._
 import scala.collection.mutable
 import scala.math
+import scala.util.control.Breaks._
 import java.io._
 import BIDMat.{Mat, FMat, DMat, IMat, CMat, BMat, CSMat, SMat, SDMat, GMat, GIMat, GSMat, HMat}
 import BIDMat.MatFunctions._
@@ -53,7 +54,7 @@ object RegressionModel {
     var cur_counts = mutable.Map.empty[Int, Int]
 
     // Make sparse matrix X via concatenation of columns
-    while (true) {
+    breakable { while (true) {
       var cur_col:IMat = tokens(?,pre_i)
       var cur_token_id:Int = cur_col(2,0) - 1
       var cur_string: String = smap{cur_token_id}
@@ -70,13 +71,17 @@ object RegressionModel {
           vals = vals on t._2
         })
         var X:SMat = sparse(icol_row, icol_col, vals, d, 1)
+        break
       // Found rating
       } else if (cur_string == "<rating>") {
-        cur_rating = Integer.parseInt(smap{cur_token_id + 1})
+        println(smap{cur_token_id})
+        println(smap{cur_token_id+1})
+        cur_rating = Integer.parseInt(smap{cur_token_id}) // Took out + 1
       // Normal token
       } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
           cur_string != "<product_type>" && cur_string != "</product_type>" &&
-          cur_string != "<asin>" && cur_string != "</asin>") {
+          cur_string != "<asin>" && cur_string != "</asin>" &&
+          cur_string != "</rating>") {
         if (!cur_counts.keySet.exists(_ == cur_token_id)) {
           cur_counts(cur_token_id) = 1
         } else {
@@ -85,7 +90,7 @@ object RegressionModel {
       }
 
       pre_i += 1
-    }
+    }}
 
     X
     //for (var i <- pre_i+1 to num_tokens-1) {
