@@ -1,3 +1,4 @@
 *.txt
 *.mat
 *.swp
+.DS_Store
