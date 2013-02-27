@@ -52,6 +52,7 @@ object RegressionModel {
     var icol_col:IMat = izeros(0, 0)
     var vals:FMat = zeros(0, 0)
     var cur_counts = mutable.Map.empty[Int, Int]
+    var sentinel_token = 0
 
     // Make sparse matrix X via concatenation of columns
     breakable { while (true) {
@@ -66,13 +67,17 @@ object RegressionModel {
       // Finished review
       } else if (cur_string == "</review>") {
         icol_col = izeros(cur_counts.size, 0)
+
+        // Get random el
+        sentinel_token = cur_counts.keys.iterator.next()
+        icol_row = icol(sentinel_token)
+        vals = col(cur_counts(sentinel_token))
+        // rm that el
+        cur_counts remove sentinel_token
         cur_counts.foreach(t => {
           icol_row = icol_row on t._1
           vals = vals on t._2
         })
-        println(icol_row.nrows)
-        println(icol_col.nrows)
-        println(vals.nrows)
         var X:SMat = sparse(icol_row, icol_col, vals, d, 1)
         break
       // Found rating
@@ -98,21 +103,21 @@ object RegressionModel {
     }}
 
     X
-    for (var i <- pre_i+1 to num_tokens-1) {
-      cur_col = tokens(?, i)
-      cur_token_id = cur_col(2,0)
-      cur_string = smap{cur_token_id - 1}
+    //for (i <- pre_i+1 to num_tokens-1) {
+    //  cur_col = tokens(?, i)
+    //  cur_token_id = cur_col(2,0)
+    //  cur_string = smap{cur_token_id - 1}
 
-      // New review
-      if (cur_string == "<review>") {
-        review_i += 1
-        cur_counts = mutable.Map.empty[Int, Int]
-      } else if (cur_string == "</review>") {
-        // Concat current Sparse Mat to X
-      } else if (cur_string == "<rating>") {
-        cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
-      }
-    }
+    //  // New review
+    //  if (cur_string == "<review>") {
+    //    review_i += 1
+    //    cur_counts = mutable.Map.empty[Int, Int]
+    //  } else if (cur_string == "</review>") {
+    //    // Concat current Sparse Mat to X
+    //  } else if (cur_string == "<rating>") {
+    //    cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
+    //  }
+    //}
 
     //saveAs(processed_x_path, X, "X", Y, "labels")
   }
