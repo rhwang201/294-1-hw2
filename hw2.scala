@@ -23,7 +23,8 @@ object RegressionModel {
 
   // File paths
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
-  val mat_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
+  //val mat_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
+  val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
   var X = zeros(1,1)
@@ -50,7 +51,7 @@ object RegressionModel {
     var cur_col:IMat = izeros(1,1)
 
     // Make sparse matrix X via concatenation of columns
-    for (var i <- 1 to num_tokens-1) {
+    for (i <- 1 to num_tokens-1) {
       cur_col = tokens(?, i)
       cur_token_id = cur_col(2,0)
       cur_string = smap{cur_token_id}
@@ -112,11 +113,15 @@ object RegressionModel {
       // Test
       // Save accuracy measures
     }
-    // Compute measures
+    // Compute measures (AUC & 1% lift score)
     return 0
   }
 
   def main(args: Array[String]) = {
+    //val tokens:IMat = load(mat_file, "tokens")
+    //val smap:CSMat=load(mat_file, "smap")
+    //val scnt:IMat =load(mat_file, "scnt")
+
     //process()
     //cross_validate(10)
   }
