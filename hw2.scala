@@ -74,6 +74,7 @@ object RegressionModel {
         vals = col(cur_counts(sentinel_token))
         // rm that el
         cur_counts remove sentinel_token
+
         cur_counts.foreach(t => {
           icol_row = icol_row on t._1
           vals = vals on t._2
@@ -82,10 +83,9 @@ object RegressionModel {
         break
       // Found rating
       } else if (cur_string == "<rating>") {
-        println(smap{cur_token_id})
-        println(smap{cur_token_id+1})
         if (smap{cur_token_id + 1} != "</rating>") {
-          cur_rating = Integer.parseInt(smap{cur_token_id + 1}) // Took out + 1
+          println("Got a rating number!\n\n")
+          cur_rating = Integer.parseInt(smap{cur_token_id + 1})
         }
       // Normal token
       } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
@@ -103,11 +103,11 @@ object RegressionModel {
     }}
 
     for (i <- 0 to pre_i) {
-      println(smap{tokens(2,i)})
+      println(smap{tokens(2,i) + 1})
     }
     println("next review\n\n")
     for (i <- pre_i to 2*pre_i) {
-      println(smap{tokens(2,i)})
+      println(smap{tokens(2,i) + 1})
     }
     X
     //for (i <- pre_i+1 to num_tokens-1) {
