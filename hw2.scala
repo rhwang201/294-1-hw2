@@ -2,9 +2,9 @@
 /* CS294-1 */
 /* Spring 2013 */
 
-/*   To run this, first "source path.sh" from within the BIDMat directory.
- *   Then, compile with "bin/sbt compile".  Finally run
- *   "scala -J-Xmx32G -cp $BIDMAT_LIBS RegressionModel"
+/*   To run this, first "source path.sh" (if you've started a new shell)
+ *   from within the BIDMat directory. Then, compile with "bin/sbt compile".
+ *   Finally run "scala -J-Xmx32G -cp $BIDMAT_LIBS RegressionModel"
  */
 
 import scala.io._
