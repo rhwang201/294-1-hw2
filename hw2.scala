@@ -192,16 +192,14 @@ object RegressionModel {
 
   /** Concatenates l_i blocks of X and Y. */
   def loadX(l_i:Int) = {
-    // TODO Y
-    val processed_template = processed_x_path + "%s.mat"
+    val processed_template = processed_x_path + "%d.mat"
     X = load(processed_template.format(1), "X")
-    println("Loaded 1")
+    Y = load(processed_template.format(1), "Y")
     for (i <- 2 to l_i) {
       X = X \ load(processed_template.format(i), "X")
-      println("Loaded %d".format(i))
+      Y = Y \ load(processed_template.format(i), "Y")
     }
-    println(X.nrows, X.ncols)
-    println(find(X).nrows)
+    println("Finished loading and constructing X and Y")
   }
 
   /** Precalculates XX^T and YX_T for use in l2_gradient. */
