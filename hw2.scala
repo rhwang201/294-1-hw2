@@ -25,8 +25,8 @@ object RegressionModel {
   // File paths
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
-  //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
-  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
+  val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
+  //val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
 
 
   // Initialize matrices
@@ -190,11 +190,18 @@ object RegressionModel {
     println("Number of reviews: %s; number of ratings: ".format(review_count, n))
   }
 
-  /** Concatenates l_i blocks of X. */
-  def loadX(l_i) = {
-    X = load("%s".format(), "X")
-    for (i <- 2 to l_I) {
+  /** Concatenates l_i blocks of X and Y. */
+  def loadX(l_i:Int) = {
+    // TODO Y
+    val processed_template = processed_x_path + "%s.mat"
+    X = load(processed_template.format(1), "X")
+    println("Loaded 1")
+    for (i <- 2 to l_i) {
+      X = X \ load(processed_template.format(i), "X")
+      println("Loaded %d".format(i))
     }
+    println(X.nrows, X.ncols)
+    println(find(X).nrows)
   }
 
   /** Precalculates XX^T and YX_T for use in l2_gradient. */
@@ -284,13 +291,14 @@ object RegressionModel {
 
   /** Main Method */
   def main(args: Array[String]) = {
-    val command = args(0)
-    if (command == "process") {
-      process()
-    } else if (command == "load") {
-      val l_i = args(1)
-      loadX(l_i)
-    }
+    //val command = args(0)
+    //if (command == "process") {
+    //  process()
+    //} else if (command == "load") {
+    //  val l_i = args(1)
+    //  loadX(l_i.toInt)
+    //}
+    loadX(57) // TODO command line args
     //cross_validate(10)
   }
 
