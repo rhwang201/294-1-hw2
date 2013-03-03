@@ -29,11 +29,11 @@ object RegressionModel {
   val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed.mat"
 
   // Initialize matrices
-  var X:SMat = sprand(1,1, 0.5)
-  var Y = sprand(1,1, 0.5)
+  var X:SMat = sprand(1,1, 0.5) // dxn data matrix
+  var Y = sprand(1,1, 0.5) // 1xn label row vector
   var Y_t = sprand(1,1, 0.5)
-  var x_squared = zeros(1,1)
-  var y_times_X = zeros(1,1)
+  var x_squared = zeros(1,1) // dxd matrix
+  var y_times_X = zeros(1,1) // 1xd row vector
   val block_size = 10
   var block_n = 1
   var block_remainder = 0
@@ -80,18 +80,9 @@ object RegressionModel {
       } else if (cur_string == "</review>") {
         if (got_rating) {
           icol_col = izeros(cur_counts.size, 1)
+          icol_row = icol(cur_counts.keys.toList)
+          vals = col(cur_counts.values.toArray)
 
-          // Get random el
-          sentinel_token = cur_counts.keys.iterator.next()
-          icol_row = icol(sentinel_token)
-          vals = col(cur_counts(sentinel_token))
-          // rm that el
-          cur_counts remove sentinel_token
-
-          cur_counts.foreach(t => {
-            icol_row = icol_row on t._1
-            vals = vals on t._2
-          })
           X = sparse(icol_row, icol_col, vals, d, 1)
           Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           got_rating = false
@@ -129,7 +120,7 @@ object RegressionModel {
       if (cur_string == "<review>") {
         review_count += 1
         if (review_count % 1000 == 0) {
-        println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
+          println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
         }
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
@@ -184,39 +175,34 @@ object RegressionModel {
     saveAs(processed_x_path, X, "X", Y, "Y")
   }
 
-  /** Precalculates X^2 and yX for use in l2_gradient. */
+  /** Precalculates XX^T and YX_T for use in l2_gradient. */
   def pre_calculate_gradient() = {
     block_n = n / block_size
     block_remainder = n % block_size
 
     x_squared = zeros(d,d)
+    y_times_X = zeros(1,d)
     var block = sprand(1,1, 0.5)
+    var block_transposed = sprand(1,1, 0.5)
     for (i <- 0 to block_n - 1) {
       block = X(?, block_size*i to block_size*(i+1) - 1)
-      x_squared = x_squared + block * block.t
+      block_transposed = block.t
+      x_squared = x_squared + block * block_transposed
+      y_times_X = y_times_X + Y * block_transposed 
     }
     block = X(?, block_size*block_n to block_size*block_n + block_remainder)
-    x_squared = x_squared + block * block.t
+    x_squared = x_squared + block * block_transposed
+    y_times_X = y_times_X + Y * block_transposed 
 
     x_squared = (1/block_size) * x_squared
-
-    Y_t = Y.t
-    y_times_X = zeros(d,1)
-    for (i <- 0 to block_n) {
-      block = X(?, block_size*i to block_size*(i+1) - 1)
-      y_times_X = y_times_X + block * Y_t
-    }
-    block = X(?, block_size*block_n to block_size*block_n + block_remainder)
-    y_times_X = y_times_X + block * Y_t
-
     y_times_X = (1/block_size) * y_times_X
   }
 
   /** Calculates the L2 gradient at beta, where
-    *   L_2(beta) = E[-2y^T X + 2X^T X beta]
+    *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T]
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    return 2*x_squared*beta - 2*y_times_X
+    return 2 * beta * x_squared - 2 * y_times_X
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
