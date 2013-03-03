@@ -28,13 +28,15 @@ object RegressionModel {
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
+  // Initialize matrices
   var X = sprand(1,1, 0.5)
+  var Y = sprand(1,1, 0.5)
   var x_squared = zeros(1,1)
   var y_times_X = zeros(1,1)
 
   var d = 0
 
-  /** Processes the provided tokenized mat file into X and saves it. */
+  /** Processes the provided tokenized mat file into X, Y and saves it. */
   def process() = {
     val tokens:IMat = load(mat_file, "tokens")
     println("loaded tokens")
@@ -44,48 +46,51 @@ object RegressionModel {
     println("loaded scnt")
 
     d = scnt.nrows
+    var got_rating = false
     var cur_rating = 0
     val num_tokens = tokens.ncols
-    var review_i = -1
     var pre_i = 0
     var icol_row:IMat = izeros(0, 0)
     var icol_col:IMat = izeros(0, 0)
     var vals:FMat = zeros(0, 0)
     var cur_counts = mutable.Map.empty[Int, Int]
     var sentinel_token = 0
+    val first_review = 280
 
     // Make sparse matrix X via concatenation of columns
-    for (pre_i <- 0 to 280) {
+    for (pre_i <- 0 to first_review) {
       var cur_col:IMat = tokens(?,pre_i)
       var cur_token_id:Int = cur_col(2,0) - 1
       var cur_string: String = smap{cur_token_id}
 
       // New review
       if (cur_string == "<review>") {
-        review_i += 1
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
-        icol_col = izeros(cur_counts.size, 1)
+        if (got_rating) {
+          icol_col = izeros(cur_counts.size, 1)
 
-        // Get random el
-        sentinel_token = cur_counts.keys.iterator.next()
-        icol_row = icol(sentinel_token)
-        vals = col(cur_counts(sentinel_token))
-        // rm that el
-        cur_counts remove sentinel_token
+          // Get random el
+          sentinel_token = cur_counts.keys.iterator.next()
+          icol_row = icol(sentinel_token)
+          vals = col(cur_counts(sentinel_token))
+          // rm that el
+          cur_counts remove sentinel_token
 
-        cur_counts.foreach(t => {
-          icol_row = icol_row on t._1
-          vals = vals on t._2
-        })
-        println("\n\n\nfind(vals) = " + find(vals) + "\n\n\n")
-        X = sparse(icol_row, icol_col, vals, d, 1)
-        println("\n\n\nX nrows = " + X.nrows + "\nX ncols = " + X.ncols + "\n\n\n")
+          cur_counts.foreach(t => {
+            icol_row = icol_row on t._1
+            vals = vals on t._2
+          })
+          X = sparse(icol_row, icol_col, vals, d, 1)
+          Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+          got_rating = false
+        }
       // Found rating
       } else if (cur_string == "<rating>") {
         if (smap{cur_token_id + 1} != "</rating>") {
           println("Got a rating number!\n\n")
+          got_rating = true
           cur_rating = Integer.parseInt(smap{cur_token_id + 1})
         }
       // Normal token
@@ -101,38 +106,39 @@ object RegressionModel {
       }
     }
 
-    /*
-    breakable { while (true) {
-      var cur_col:IMat = tokens(?,pre_i)
+    for (i <- 281 to num_tokens) {
+      var cur_col:IMat = tokens(?,i)
       var cur_token_id:Int = cur_col(2,0) - 1
       var cur_string: String = smap{cur_token_id}
 
       // New review
       if (cur_string == "<review>") {
-        review_i += 1
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
-        icol_col = izeros(cur_counts.size, 0)
+        if (got_rating) {
+          icol_col = izeros(cur_counts.size, 1)
 
-        // Get random el
-        sentinel_token = cur_counts.keys.iterator.next()
-        icol_row = icol(sentinel_token)
-        vals = col(cur_counts(sentinel_token))
-        // rm that el
-        cur_counts remove sentinel_token
+          // Get random el
+          sentinel_token = cur_counts.keys.iterator.next()
+          icol_row = icol(sentinel_token)
+          vals = col(cur_counts(sentinel_token))
+          // rm that el
+          cur_counts remove sentinel_token
 
-        cur_counts.foreach(t => {
-          icol_row = icol_row on t._1
-          vals = vals on t._2
-        })
-        X = sparse(icol_row, icol_col, vals, d, 1)
-        println("\n\n\npre_i = " + pre_i + "\n\n\n")
-        break
+          // add vals
+          cur_counts.foreach(t => {
+            icol_row = icol_row on t._1
+            vals = vals on t._2
+          })
+          X = X \ sparse(icol_row, icol_col, vals, d, 1)
+          Y = Y on sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+        }
       // Found rating
       } else if (cur_string == "<rating>") {
         if (smap{cur_token_id + 1} != "</rating>") {
           println("Got a rating number!\n\n")
+          got_rating = true
           cur_rating = Integer.parseInt(smap{cur_token_id + 1})
         }
       // Normal token
@@ -146,32 +152,9 @@ object RegressionModel {
           cur_counts(cur_token_id) += 1
         }
       }
+    }
 
-      pre_i += 1
-    }}
-    */
-
-    println("\n\n\nX nrows = " + X.nrows + "\nX ncols = " + X.ncols + "\n\n\n")
-    val X1 = find(X)
-    println("\n\n\nX1 nrows = " + X1.nrows + "\nX1 ncols = " + X1.ncols + "\n\n\n")
-    //println("\n\n\nX(0,0) = " + X(0,0) + "\n X(1,0) = " + X(1,0) + "\n X(2,0) = " + X(2,0) + "\n\n\n")
-    //for (i <- pre_i+1 to num_tokens-1) {
-    //  cur_col = tokens(?, i)
-    //  cur_token_id = cur_col(2,0)
-    //  cur_string = smap{cur_token_id - 1}
-
-    //  // New review
-    //  if (cur_string == "<review>") {
-    //    review_i += 1
-    //    cur_counts = mutable.Map.empty[Int, Int]
-    //  } else if (cur_string == "</review>") {
-    //    // Concat current Sparse Mat to X
-    //  } else if (cur_string == "<rating>") {
-    //    cur_rating = Integer.parseInt(smap{cur_token_id + 1 - 1})
-    //  }
-    //}
-
-    //saveAs(processed_x_path, X, "X", Y, "labels")
+    saveAs(processed_x_path, X, "X", Y, "Y")
   }
 
   /** Precalculates X^2 and yX for use in l2_gradient. */
@@ -224,10 +207,10 @@ object RegressionModel {
 
 
       // Train
-      beta = train(training_set)
+      //beta = train(training_set)
 
       // Test
-      predictions = predict(beta, testing_set)
+      //predictions = predict(beta, testing_set)
 
       // Calculate tp, fp, tn, fn
       // Compute measures (AUC & 1% lift score) WTF
