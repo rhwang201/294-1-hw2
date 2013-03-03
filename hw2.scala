@@ -34,12 +34,16 @@ object RegressionModel {
   var Y_t = sprand(1,1, 0.5)
   var x_squared = zeros(1,1) // dxd matrix
   var y_times_X = zeros(1,1) // 1xd row vector
+
   val block_size = 10
   var block_n = 1
   var block_remainder = 0
 
   var d = 0
   var n = 0
+
+  val sgd_tolerance = 0.001
+  val gamma = 0.25
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
   def process() = {
@@ -186,7 +190,7 @@ object RegressionModel {
   }
 
   /** Precalculates XX^T and YX_T for use in l2_gradient. */
-  def pre_calculate_gradient() = {
+  def pre_calculate_gradient(X:BIDMat.SMat) = {
     block_n = n / block_size
     block_remainder = n % block_size
 
@@ -209,54 +213,59 @@ object RegressionModel {
   }
 
   /** Calculates the L2 gradient at beta, where
-    *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T]
+    *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T] + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
     return 2 * beta * x_squared - 2 * y_times_X
   }
 
+  /* Returns sum((v1 - v2).^2) */
+  def rss(v1: BIDMat.FMat, v2: BIDMat.FMat):Float = {
+    return 0 // TODO
+  }
+
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
-  def train():BIDMat.FMat = {
-    val gamma = 0.25
+  def train(x:BIDMat.SMat):BIDMat.FMat = {
+    pre_calculate_gradient(x)
 
-    // Perform SGD
-    val sgd_tolerance = 0.0001
+    // SGD
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
 
     do {
       beta_prev = beta
       beta = beta - gamma * l2_gradient(beta)
-    } while (true)
+    } while (rss(beta,beta_prev) > sgd_tolerance)
 
     return beta
   }
 
-  /** Returns the vector of predictions for input X, an nxd matrix,
+  /** Returns the vector of predictions for input X, an dxn matrix,
     *   y_hat = beta_hat * X_hat */
-  def predict(beta: BIDMat.FMat, x: BIDMat.FMat):BIDMat.FMat = {
+  def predict(beta: BIDMat.FMat, x: BIDMat.SMat):BIDMat.FMat = {
     return beta * x
   }
+
+  // TODO WHAT should be sparse, what should be dense
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
     // Partition data
-    var training_set = zeros(1,1)
-    var testing_set = zeros(1,1)
+    var training_set:BIDMat.SMat = sprand(1,1,0.5)
+    var testing_set:BIDMat.SMat = sprand(1,1,0.5)
 
-    var beta = zeros(1,1);
-    var predictions = zeros(1,1);
+    var beta:BIDMat.FMat = zeros(1,1);
+    var predictions:BIDMat.FMat = zeros(1,1);
 
     for (i <- 1 to k) {
       // Get training/testing
 
-
       // Train
-      //beta = train(training_set)
+      beta = train(training_set)
 
       // Test
-      //predictions = predict(beta, testing_set)
+      predictions = predict(beta, testing_set)
 
       // Calculate tp, fp, tn, fn
       // Compute measures (AUC & 1% lift score) WTF
@@ -265,8 +274,11 @@ object RegressionModel {
     return 0
   }
 
+  /** Main Method */
   def main(args: Array[String]) = {
-    process()
+    if (args(0) == "process") {
+      process()
+    }
     //cross_validate(10)
   }
 

@@ -5,4 +5,4 @@
 *.mat
 *.swp
 .DS_Store
-data
+*.pdf
