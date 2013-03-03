@@ -26,7 +26,8 @@ object RegressionModel {
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
   //val mat_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
-  val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
+  //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
+  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed.mat"
 
   // Initialize matrices
   var X = sprand(1,1, 0.5)
@@ -49,6 +50,8 @@ object RegressionModel {
     var got_rating = false
     var cur_rating = 0.0
     val num_tokens = tokens.ncols
+    println("num_tokens = " + num_tokens)
+    var review_count = 0
     var pre_i = 0
     var icol_row:IMat = izeros(0, 0)
     var icol_col:IMat = izeros(0, 0)
@@ -66,6 +69,8 @@ object RegressionModel {
 
       // New review
       if (cur_string == "<review>") {
+        review_count += 1
+        println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
@@ -117,6 +122,10 @@ object RegressionModel {
 
       // New review
       if (cur_string == "<review>") {
+        review_count += 1
+        if (review_count % 1000 == 0) {
+        println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
+        }
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
@@ -138,6 +147,10 @@ object RegressionModel {
           X = X \ sparse(icol_row, icol_col, vals, d, 1)
           Y = Y on sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           got_rating = false
+          if (review_count % 100000 == 0) {
+            saveAs(processed_x_path, X, "X", Y, "Y")
+            println("First %s reviews saved" + review_count)
+          }
         }
       // Found rating
       } else if (cur_string == "<rating>") {
