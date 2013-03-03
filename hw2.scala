@@ -62,17 +62,14 @@ object RegressionModel {
     var icol_col:IMat = izeros(0, 0)
     var vals:FMat = zeros(0, 0)
     var cur_counts = mutable.Map.empty[Int, Int]
-    var sentinel_token = 0
     val first_review = 280
     var rating_now = false
 
-    /**************/
     var review_count = 0
     val probe_step = 2000
     val save_step = 10000
     var next_block = false
     val start = 2000000
-    /**************/
 
     // Make sparse matrix X via concatenation of columns
     for (pre_i <- 0 to first_review) {
@@ -128,31 +125,19 @@ object RegressionModel {
 
       // New review
       if (cur_string == "<review>") {
-        /**************/
         review_count += 1
         if (review_count % probe_step == 0) {
           println( "currently processing review number %s at token %s; previous batch took %s seconds.".format(review_count, pre_i, (System.currentTimeMillis - time)/1000.0) )
           time = System.currentTimeMillis
         }
-        /**************/
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
         if (got_rating) {
           icol_col = izeros(cur_counts.size, 1)
+          icol_row = icol(cur_counts.keys.toList)
+          vals = col(cur_counts.values.toArray)
 
-          // Get random el
-          sentinel_token = cur_counts.keys.iterator.next()
-          icol_row = icol(sentinel_token)
-          vals = col(cur_counts(sentinel_token))
-          // rm that el
-          cur_counts remove sentinel_token
-
-          // add vals
-          cur_counts.foreach(t => {
-            icol_row = icol_row on t._1
-            vals = vals on t._2
-          })
           if (next_block) {
             X = sparse(icol_row, icol_col, vals, d, 1)
             Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
@@ -162,7 +147,7 @@ object RegressionModel {
             Y = Y \ sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           }
           got_rating = false
-          /**************/
+
           if (review_count % save_step == 0) {
             time = System.currentTimeMillis            
             saveAs(processed_x_path+"%s.mat".format(review_count/save_step), X, "X", Y, "Y")
@@ -170,7 +155,7 @@ object RegressionModel {
             next_block = true
             time = System.currentTimeMillis       
           }
-          /**************/
+
           n = n + 1
         }
       // Found rating
