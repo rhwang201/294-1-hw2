@@ -1,3 +1,6 @@
+*.aux
+*.gz
+*.log
 *.txt
 *.mat
 *.swp
