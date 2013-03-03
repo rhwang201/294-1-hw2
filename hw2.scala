@@ -20,6 +20,7 @@ import BIDMat.Solvers._
 import BIDMat.Plotting._
 //import stemmer.Stemmer
 
+/** Performs linear regression on amazon.com reviews. */
 object RegressionModel {
 
   // File paths
@@ -27,7 +28,6 @@ object RegressionModel {
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
   //val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
-
 
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5) // dxn data matrix
@@ -45,6 +45,8 @@ object RegressionModel {
 
   val sgd_tolerance = 0.001
   val gamma = 0.25
+
+  val k = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
   def process() = {
@@ -265,6 +267,7 @@ object RegressionModel {
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
     // Partition data
+    val set_size = n / k
     var training_set:BIDMat.SMat = sprand(1,1,0.5)
     var testing_set:BIDMat.SMat = sprand(1,1,0.5)
 
@@ -273,6 +276,13 @@ object RegressionModel {
 
     for (i <- 1 to k) {
       // Get training/testing
+      if (i != k) {
+        training_set = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
+        testing_set = X(?, (i-1)*set_size to i*set_size - 1)
+      } else {
+        training_set = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
+        testing_set = X(?, (i-1)*set_size to n - 1)
+      }
 
       // Train
       beta = train(training_set)
@@ -281,7 +291,11 @@ object RegressionModel {
       predictions = predict(beta, testing_set)
 
       // Calculate tp, fp, tn, fn
-      // Compute measures (AUC & 1% lift score) WTF
+      // sort pred
+      // for each pred
+      //   compute fpr and tpr as if pred is threshold
+      // go through scores, looking for ticks
+
     }
     // Plot error vs training_size
     return 0
