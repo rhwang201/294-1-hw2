@@ -47,7 +47,7 @@ object RegressionModel {
 
     d = scnt.nrows
     var got_rating = false
-    var cur_rating = 0
+    var cur_rating = 0.0
     val num_tokens = tokens.ncols
     var pre_i = 0
     var icol_row:IMat = izeros(0, 0)
@@ -56,6 +56,7 @@ object RegressionModel {
     var cur_counts = mutable.Map.empty[Int, Int]
     var sentinel_token = 0
     val first_review = 280
+    var rating_now = false
 
     // Make sparse matrix X via concatenation of columns
     for (pre_i <- 0 to first_review) {
@@ -88,10 +89,13 @@ object RegressionModel {
         }
       // Found rating
       } else if (cur_string == "<rating>") {
-        if (smap{cur_token_id + 1} != "</rating>") {
-          println("Got a rating number!\n\n")
+        rating_now = true
+      // At rating number
+      } else if (rating_now) {
+        if (cur_string != "</rating>") {
+          cur_rating = cur_string.toDouble
           got_rating = true
-          cur_rating = Integer.parseInt(smap{cur_token_id + 1})
+          rating_now = false
         }
       // Normal token
       } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
@@ -133,13 +137,17 @@ object RegressionModel {
           })
           X = X \ sparse(icol_row, icol_col, vals, d, 1)
           Y = Y on sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+          got_rating = false
         }
       // Found rating
       } else if (cur_string == "<rating>") {
-        if (smap{cur_token_id + 1} != "</rating>") {
-          println("Got a rating number!\n\n")
+        rating_now = true
+      // At rating number
+      } else if (rating_now) {
+        if (cur_string != "</rating>") {
+          cur_rating = cur_string.toDouble
           got_rating = true
-          cur_rating = Integer.parseInt(smap{cur_token_id + 1})
+          rating_now = false
         }
       // Normal token
       } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
@@ -158,9 +166,21 @@ object RegressionModel {
   }
 
   /** Precalculates X^2 and yX for use in l2_gradient. */
-  def pre_calculate_gradient() = {
-    // TODO
-  }
+  //def pre_calculate_gradient() = {
+  //  x_squared = zeros(d,d)
+  //  var block = zeros(1,1)
+  //  for (i <- 0 to block_n) {
+  //    block = X(?,block_size)
+  //    x_squared = x_squared + block * block.t
+  //  }
+  //  x_squared = (1/block_size) * x_squared
+
+  //  y_times_X = zeros()
+  //  for (i <- 0 to block_n) {
+  //    //y_times_X = y_times_X + // TODO
+  //  }
+  //  y_times_X = (1/block_size) * y_times_x
+  //}
 
   /** Calculates the L2 gradient at beta, where
     *   L_2(beta) = E[-2y^T X + 2X^T X beta]
