@@ -24,17 +24,21 @@ object RegressionModel {
 
   // File paths
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
-  //val mat_file = "/Users/richard/classes/294-1/hw2/data/tokenized.mat"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
   // Initialize matrices
-  var X = sprand(1,1, 0.5)
+  var X:SMat = sprand(1,1, 0.5)
   var Y = sprand(1,1, 0.5)
+  var Y_t = sprand(1,1, 0.5)
   var x_squared = zeros(1,1)
   var y_times_X = zeros(1,1)
+  val block_size = 10
+  var block_n = 1
+  var block_remainder = 0
 
   var d = 0
+  var n = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
   def process() = {
@@ -86,6 +90,7 @@ object RegressionModel {
           X = sparse(icol_row, icol_col, vals, d, 1)
           Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           got_rating = false
+          n = n + 1
         }
       // Found rating
       } else if (cur_string == "<rating>") {
@@ -138,6 +143,7 @@ object RegressionModel {
           X = X \ sparse(icol_row, icol_col, vals, d, 1)
           Y = Y on sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           got_rating = false
+          n = n + 1
         }
       // Found rating
       } else if (cur_string == "<rating>") {
@@ -166,21 +172,32 @@ object RegressionModel {
   }
 
   /** Precalculates X^2 and yX for use in l2_gradient. */
-  //def pre_calculate_gradient() = {
-  //  x_squared = zeros(d,d)
-  //  var block = zeros(1,1)
-  //  for (i <- 0 to block_n) {
-  //    block = X(?,block_size)
-  //    x_squared = x_squared + block * block.t
-  //  }
-  //  x_squared = (1/block_size) * x_squared
+  def pre_calculate_gradient() = {
+    block_n = n / block_size
+    block_remainder = n % block_size
 
-  //  y_times_X = zeros()
-  //  for (i <- 0 to block_n) {
-  //    //y_times_X = y_times_X + // TODO
-  //  }
-  //  y_times_X = (1/block_size) * y_times_x
-  //}
+    x_squared = zeros(d,d)
+    var block = sprand(1,1, 0.5)
+    for (i <- 0 to block_n - 1) {
+      block = X(?, block_size*i to block_size*(i+1) - 1)
+      x_squared = x_squared + block * block.t
+    }
+    block = X(?, block_size*block_n to block_size*block_n + block_remainder)
+    x_squared = x_squared + block * block.t
+
+    x_squared = (1/block_size) * x_squared
+
+    Y_t = Y.t
+    y_times_X = zeros(d,1)
+    for (i <- 0 to block_n) {
+      block = X(?, block_size*i to block_size*(i+1) - 1)
+      y_times_X = y_times_X + block * Y_t
+    }
+    block = X(?, block_size*block_n to block_size*block_n + block_remainder)
+    y_times_X = y_times_X + block * Y_t
+
+    y_times_X = (1/block_size) * y_times_X
+  }
 
   /** Calculates the L2 gradient at beta, where
     *   L_2(beta) = E[-2y^T X + 2X^T X beta]
