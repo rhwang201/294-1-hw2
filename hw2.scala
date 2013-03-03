@@ -168,13 +168,26 @@ object RegressionModel {
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
     // Partition data
+    var training_set = zeros(1,1)
+    var testing_set = zeros(1,1)
+
+    var beta = zeros(1,1);
+    var predictions = zeros(1,1);
 
     for (i <- 1 to k) {
+      // Get training/testing
+
+
       // Train
+      beta = train(training_set)
+
       // Test
-      // Save accuracy measures
+      predictions = predict(beta, testing_set)
+
+      // Calculate tp, fp, tn, fn
+      // Compute measures (AUC & 1% lift score) WTF
     }
-    // Compute measures (AUC & 1% lift score)
+    // Plot error vs training_size
     return 0
   }
 
