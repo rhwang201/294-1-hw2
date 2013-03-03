@@ -28,7 +28,7 @@ object RegressionModel {
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
 
-  var X = zeros(1,1)
+  var X = sprand(1,1, 0.5)
   var x_squared = zeros(1,1)
   var y_times_X = zeros(1,1)
 
@@ -55,6 +55,53 @@ object RegressionModel {
     var sentinel_token = 0
 
     // Make sparse matrix X via concatenation of columns
+    for (pre_i <- 0 to 280) {
+      var cur_col:IMat = tokens(?,pre_i)
+      var cur_token_id:Int = cur_col(2,0) - 1
+      var cur_string: String = smap{cur_token_id}
+
+      // New review
+      if (cur_string == "<review>") {
+        review_i += 1
+        cur_counts = mutable.Map.empty[Int, Int]
+      // Finished review
+      } else if (cur_string == "</review>") {
+        icol_col = izeros(cur_counts.size, 1)
+
+        // Get random el
+        sentinel_token = cur_counts.keys.iterator.next()
+        icol_row = icol(sentinel_token)
+        vals = col(cur_counts(sentinel_token))
+        // rm that el
+        cur_counts remove sentinel_token
+
+        cur_counts.foreach(t => {
+          icol_row = icol_row on t._1
+          vals = vals on t._2
+        })
+        println("\n\n\nfind(vals) = " + find(vals) + "\n\n\n")
+        X = sparse(icol_row, icol_col, vals, d, 1)
+        println("\n\n\nX nrows = " + X.nrows + "\nX ncols = " + X.ncols + "\n\n\n")
+      // Found rating
+      } else if (cur_string == "<rating>") {
+        if (smap{cur_token_id + 1} != "</rating>") {
+          println("Got a rating number!\n\n")
+          cur_rating = Integer.parseInt(smap{cur_token_id + 1})
+        }
+      // Normal token
+      } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
+          cur_string != "<product_type>" && cur_string != "</product_type>" &&
+          cur_string != "<asin>" && cur_string != "</asin>" &&
+          cur_string != "</rating>") {
+        if (!cur_counts.keySet.exists(_ == cur_token_id)) {
+          cur_counts(cur_token_id) = 1
+        } else {
+          cur_counts(cur_token_id) += 1
+        }
+      }
+    }
+
+    /*
     breakable { while (true) {
       var cur_col:IMat = tokens(?,pre_i)
       var cur_token_id:Int = cur_col(2,0) - 1
@@ -79,7 +126,8 @@ object RegressionModel {
           icol_row = icol_row on t._1
           vals = vals on t._2
         })
-        var X:SMat = sparse(icol_row, icol_col, vals, d, 1)
+        X = sparse(icol_row, icol_col, vals, d, 1)
+        println("\n\n\npre_i = " + pre_i + "\n\n\n")
         break
       // Found rating
       } else if (cur_string == "<rating>") {
@@ -101,15 +149,12 @@ object RegressionModel {
 
       pre_i += 1
     }}
+    */
 
-    for (i <- 0 to pre_i) {
-      println(smap{tokens(2,i) + 1})
-    }
-    println("next review\n\n")
-    for (i <- pre_i to 2*pre_i) {
-      println(smap{tokens(2,i) + 1})
-    }
-    X
+    println("\n\n\nX nrows = " + X.nrows + "\nX ncols = " + X.ncols + "\n\n\n")
+    val X1 = find(X)
+    println("\n\n\nX1 nrows = " + X1.nrows + "\nX1 ncols = " + X1.ncols + "\n\n\n")
+    //println("\n\n\nX(0,0) = " + X(0,0) + "\n X(1,0) = " + X(1,0) + "\n X(2,0) = " + X(2,0) + "\n\n\n")
     //for (i <- pre_i+1 to num_tokens-1) {
     //  cur_col = tokens(?, i)
     //  cur_token_id = cur_col(2,0)
