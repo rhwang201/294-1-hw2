@@ -26,11 +26,11 @@ object RegressionModel {
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
   //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
-  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed.mat"
+  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
 
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5)
-  var Y = sprand(1,1, 0.5)
+  var Y:SMat = sprand(1,1, 0.5)
   var Y_t = sprand(1,1, 0.5)
   var x_squared = zeros(1,1)
   var y_times_X = zeros(1,1)
@@ -43,19 +43,20 @@ object RegressionModel {
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
   def process() = {
+    var time = System.currentTimeMillis
     val tokens:IMat = load(mat_file, "tokens")
-    println("loaded tokens")
+    println( "tokens loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
+    time = System.currentTimeMillis
     val smap:CSMat=load(mat_file, "smap")
-    println("loaded smap")
+    println( "smap loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
+    time = System.currentTimeMillis
     val scnt:IMat=load(mat_file, "scnt")
-    println("loaded scnt")
+    println( "scnt loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
 
     d = scnt.nrows
     var got_rating = false
     var cur_rating = 0.0
     val num_tokens = tokens.ncols
-    println("num_tokens = " + num_tokens)
-    var review_count = 0
     var pre_i = 0
     var icol_row:IMat = izeros(0, 0)
     var icol_col:IMat = izeros(0, 0)
@@ -64,6 +65,14 @@ object RegressionModel {
     var sentinel_token = 0
     val first_review = 280
     var rating_now = false
+
+    /**************/
+    var review_count = 0
+    val probe_step = 2000
+    val save_step = 10000
+    var next_block = false
+    val start = 2000000
+    /**************/
 
     // Make sparse matrix X via concatenation of columns
     for (pre_i <- 0 to first_review) {
@@ -74,7 +83,7 @@ object RegressionModel {
       // New review
       if (cur_string == "<review>") {
         review_count += 1
-        println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
+          println( "currently processing review number %s at token %s; previous batch took %s seconds.".format(review_count, pre_i, (System.currentTimeMillis - time)/1000.0) )
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
@@ -120,17 +129,21 @@ object RegressionModel {
       }
     }
 
-    for (i <- 281 to num_tokens) {
+    time = System.currentTimeMillis
+    for (i <- start to num_tokens) {
       var cur_col:IMat = tokens(?,i)
       var cur_token_id:Int = cur_col(2,0) - 1
       var cur_string: String = smap{cur_token_id}
 
       // New review
       if (cur_string == "<review>") {
+        /**************/
         review_count += 1
-        if (review_count % 1000 == 0) {
-        println("currently processing review number " + review_count + " @ " + System.currentTimeMillis)
+        if (review_count % probe_step == 0) {
+          println( "currently processing review number %s at token %s; previous batch took %s seconds.".format(review_count, pre_i, (System.currentTimeMillis - time)/1000.0) )
+          time = System.currentTimeMillis
         }
+        /**************/
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
@@ -149,13 +162,24 @@ object RegressionModel {
             icol_row = icol_row on t._1
             vals = vals on t._2
           })
-          X = X \ sparse(icol_row, icol_col, vals, d, 1)
-          Y = Y on sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
-          got_rating = false
-          if (review_count % 100000 == 0) {
-            saveAs(processed_x_path, X, "X", Y, "Y")
-            println("First %s reviews saved" + review_count)
+          if (next_block) {
+            X = sparse(icol_row, icol_col, vals, d, 1)
+            Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+            next_block = false
+          } else {
+            X = X \ sparse(icol_row, icol_col, vals, d, 1)
+            Y = Y \ sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
           }
+          got_rating = false
+          /**************/
+          if (review_count % save_step == 0) {
+            time = System.currentTimeMillis            
+            saveAs(processed_x_path+"%s.mat".format(review_count/save_step), X, "X", Y, "Y")
+            println( "batch number %s saved using %s seconds.".format(review_count/save_step, (System.currentTimeMillis - time)/1000.0) )
+            next_block = true
+            time = System.currentTimeMillis       
+          }
+          /**************/
           n = n + 1
         }
       // Found rating
@@ -181,7 +205,8 @@ object RegressionModel {
       }
     }
 
-    saveAs(processed_x_path, X, "X", Y, "Y")
+    saveAs(processed_x_path+"last.mat", X, "X", Y, "Y")
+    println("Number of reviews: %s; number of ratings: ".format(review_count, n))
   }
 
   /** Precalculates X^2 and yX for use in l2_gradient. */
