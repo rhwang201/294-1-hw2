@@ -28,6 +28,7 @@ object RegressionModel {
   //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed.mat"
   val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
 
+
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5) // dxn data matrix
   var Y = sprand(1,1, 0.5) // 1xn label row vector
@@ -189,6 +190,13 @@ object RegressionModel {
     println("Number of reviews: %s; number of ratings: ".format(review_count, n))
   }
 
+  /** Concatenates l_i blocks of X. */
+  def loadX(l_i) = {
+    X = load("%s".format(), "X")
+    for (i <- 2 to l_I) {
+    }
+  }
+
   /** Precalculates XX^T and YX_T for use in l2_gradient. */
   def pre_calculate_gradient(X:BIDMat.SMat) = {
     block_n = n / block_size
@@ -276,8 +284,12 @@ object RegressionModel {
 
   /** Main Method */
   def main(args: Array[String]) = {
-    if (args(0) == "process") {
+    val command = args(0)
+    if (command == "process") {
       process()
+    } else if (command == "load") {
+      val l_i = args(1)
+      loadX(l_i)
     }
     //cross_validate(10)
   }
