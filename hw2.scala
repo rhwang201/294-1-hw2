@@ -289,15 +289,15 @@ object RegressionModel {
 
   /** Main Method */
   def main(args: Array[String]) = {
-    //val command = args(0)
-    //if (command == "process") {
-    //  process()
-    //} else if (command == "load") {
-    //  val l_i = args(1)
-    //  loadX(l_i.toInt)
-    //}
-    loadX(57) // TODO command line args
-    //cross_validate(10)
+    val command = args(0)
+    if (command == "process") {
+      process()
+    } else if (command == "load") {
+      val l_i = args(1)
+      loadX(l_i.toInt)
+    } else if (command == "cross_validate") {
+      cross_validate(10)
+    }
   }
 
 }
