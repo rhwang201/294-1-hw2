@@ -26,8 +26,8 @@ object RegressionModel {
   // File paths
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
-  val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
-  //val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
+  //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
+  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
 
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5) // dxn data matrix
@@ -75,54 +75,8 @@ object RegressionModel {
     var review_count = 0
     val probe_step = 2000
     val save_step = 10000
-    var next_block = false
+    var next_block = true
     val start = 2000000
-
-    // Make sparse matrix X via concatenation of columns
-    for (pre_i <- 0 to first_review) {
-      var cur_col:IMat = tokens(?,pre_i)
-      var cur_token_id:Int = cur_col(2,0) - 1
-      var cur_string: String = smap{cur_token_id}
-
-      // New review
-      if (cur_string == "<review>") {
-        review_count += 1
-          println( "currently processing review number %s at token %s; previous batch took %s seconds.".format(review_count, pre_i, (System.currentTimeMillis - time)/1000.0) )
-        cur_counts = mutable.Map.empty[Int, Int]
-      // Finished review
-      } else if (cur_string == "</review>") {
-        if (got_rating) {
-          icol_col = izeros(cur_counts.size, 1)
-          icol_row = icol(cur_counts.keys.toList)
-          vals = col(cur_counts.values.toArray)
-
-          X = sparse(icol_row, icol_col, vals, d, 1)
-          Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
-          got_rating = false
-          n = n + 1
-        }
-      // Found rating
-      } else if (cur_string == "<rating>") {
-        rating_now = true
-      // At rating number
-      } else if (rating_now) {
-        if (cur_string != "</rating>") {
-          cur_rating = cur_string.toDouble
-          got_rating = true
-          rating_now = false
-        }
-      // Normal token
-      } else if (cur_string != "<unique_id" && cur_string != "</unique_id>" &&
-          cur_string != "<product_type>" && cur_string != "</product_type>" &&
-          cur_string != "<asin>" && cur_string != "</asin>" &&
-          cur_string != "</rating>") {
-        if (!cur_counts.keySet.exists(_ == cur_token_id)) {
-          cur_counts(cur_token_id) = 1
-        } else {
-          cur_counts(cur_token_id) += 1
-        }
-      }
-    }
 
     time = System.currentTimeMillis
     for (i <- start to num_tokens) {
@@ -158,7 +112,7 @@ object RegressionModel {
           if (review_count % save_step == 0) {
             time = System.currentTimeMillis            
             saveAs(processed_x_path+"%s.mat".format(review_count/save_step), X, "X", Y, "Y")
-            println( "batch number %s saved using %s seconds.".format(review_count/save_step, (System.currentTimeMillis - time)/1000.0) )
+            println( "batch number %s saved in %s seconds.".format(review_count/save_step, (System.currentTimeMillis - time)/1000.0) )
             next_block = true
             time = System.currentTimeMillis       
           }
@@ -188,8 +142,7 @@ object RegressionModel {
       }
     }
 
-    saveAs(processed_x_path+"last.mat", X, "X", Y, "Y")
-    println("Number of reviews: %s; number of ratings: ".format(review_count, n))
+    saveAs(processed_x_path+"%s.mat".format(review_count/save_step+1), X, "X", Y, "Y")
   }
 
   /** Concatenates l_i blocks of X and Y. */
@@ -201,6 +154,7 @@ object RegressionModel {
       X = X \ load(processed_template.format(i), "X")
       Y = Y \ load(processed_template.format(i), "Y")
     }
+    saveAs("/Users/Davidius/294-1-hw2/data/processed.mat", X, "X", Y, "Y")
     println("Finished loading and constructing X and Y")
   }
 
