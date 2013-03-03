@@ -25,8 +25,8 @@ object RegressionModel {
   // File paths
   val tokens_file = "/Users/richard/classes/294-1/hw2/data/tokens.bin"
   val mat_file = "/Users/Davidius/294-1-hw2/data/tokenized.mat"
-  val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
-  //val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
+  //val processed_x_path = "/Users/richard/classes/294-1/hw2/data/processed"
+  val processed_x_path = "/Users/Davidius/294-1-hw2/data/processed"
 
 
   // Initialize matrices
@@ -199,6 +199,7 @@ object RegressionModel {
       X = X \ load(processed_template.format(i), "X")
       Y = Y \ load(processed_template.format(i), "Y")
     }
+    saveAs("/Users/Davidius/294-1-hw2/data/processed.mat", X, "X", Y, "Y")
     println("Finished loading and constructing X and Y")
   }
 
@@ -296,7 +297,7 @@ object RegressionModel {
     //  val l_i = args(1)
     //  loadX(l_i.toInt)
     //}
-    loadX(57) // TODO command line args
+    loadX(100) // TODO command line args
     //cross_validate(10)
   }
 
