@@ -191,8 +191,8 @@ object RegressionModel {
     return beta
   }
 
-  /** Returns the vector of predictions for input X, an dxn matrix,
-    *   y_hat = beta_hat * X_hat */
+  /** Returns the row vector of predictions for input X, an dxn matrix,
+    *   y_hat = beta_hat * X */
   def predict(beta: BIDMat.FMat, x: BIDMat.SMat):BIDMat.FMat = {
     return beta * x
   }
