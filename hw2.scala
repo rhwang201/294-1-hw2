@@ -181,16 +181,23 @@ object RegressionModel {
     var l2_grad = row(1, 2)
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
+    var i = 0
+
     do {
       beta_prev = beta
       l2_grad = l2_gradient(beta)
       beta = beta - gamma * l2_grad
-    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
-    time = System.currentTimeMillis
-    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
-    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
-    println("convergence")
 
+      println("iteration %d in %s seconds.\nbeta = %s".format(i,
+          (System.currentTimeMillis-time)/1000.0, beta))
+      time = System.currentTimeMillis
+      i = i + 1
+    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
+
+    println("iteration %d in %s seconds.\nbeta = %s".format(i,
+        (System.currentTimeMillis-time)/1000.0, beta))
+
+    println("convergence")
     return beta
   }
 
