@@ -31,7 +31,7 @@ object RegressionModel {
 
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5) // dxn data matrix
-  var Y = sprand(1,1, 0.5) // 1xn label row vector
+  var Y:FMat = sprand(1,1, 0.5) // 1xn label row vector
   var Y_t = sprand(1,1, 0.5)
   var x_squared = zeros(1,1) // dxd matrix
   var y_times_X = zeros(1,1) // 1xd row vector
@@ -200,7 +200,8 @@ object RegressionModel {
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    return 2 * (beta * X - Y) *^ X
+    val b:FMat = beta * X - Y
+    return 2 * b * X.t
   }
 
   /* Returns sum((v1 - v2).^2) */
@@ -210,7 +211,7 @@ object RegressionModel {
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
-  def train(x:BIDMat.SMat):BIDMat.FMat = {
+  def train():BIDMat.FMat = {
     //pre_calculate_gradient(x)
 
     // SGD
@@ -257,7 +258,7 @@ object RegressionModel {
       }
 
       // Train
-      beta = train(training_set)
+      //beta = train(training_set)
 
       // Test
       predictions = predict(beta, testing_set)
@@ -284,7 +285,13 @@ object RegressionModel {
       loadX(l_i.toInt)
     } else if (command == "cross_validate") {
       cross_validate(10)
+    } else {
+      X = load("/Users/Davidius/294-1-hw2/data/processed.mat", "X")
+      Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")
+      setGlobals()
+      train()
     }
+
   }
 
 }
