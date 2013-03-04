@@ -44,8 +44,8 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 0.1
-  val gamma = 0.25
-
+  val gamma = 0.000001
+  val lambda = 0.001
   val k = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
@@ -170,7 +170,7 @@ object RegressionModel {
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    return 2 * (beta * X - Y) *^ X
+    return 2 * (beta * X - Y) *^ X + 2 * lambda * beta
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
@@ -178,15 +178,18 @@ object RegressionModel {
   def train():BIDMat.FMat = {
     println("beginning stochastic gradient descent")
     var time = System.currentTimeMillis
+    var l2_grad = row(1, 2)
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
     do {
       beta_prev = beta
-      beta = beta - gamma * l2_gradient(beta)
-    } while (maxi(abs(beta), 2)(0,0) > sgd_tolerance)
-    println("One round of training done in %s seconds.".format( (System.currentTimeMillis-time)/1000.0) )
-    println("beta = %s".format(beta))
-    println("convergence...not")
+      l2_grad = l2_gradient(beta)
+      beta = beta - gamma * l2_grad
+    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
+    time = System.currentTimeMillis
+    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
+    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
+    println("convergence")
 
     return beta
   }
