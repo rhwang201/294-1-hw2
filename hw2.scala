@@ -145,6 +145,12 @@ object RegressionModel {
     saveAs(processed_x_path+"%s.mat".format(review_count/save_step+1), X, "X", Y, "Y")
   }
 
+  /** To be called if we directly load X and Y, instead of creating it. */
+  def setGlobals() = {
+    n = X.ncols
+    d = X.nrows
+  }
+
   /** Concatenates l_i blocks of X and Y. */
   def loadX(l_i:Int) = {
     val processed_template = processed_x_path + "%d.mat"
@@ -158,6 +164,7 @@ object RegressionModel {
     println("Finished loading and constructing X and Y")
   }
 
+  // TODO Jcanny says not to use this?
   /** Precalculates XX^T and YX_T for use in l2_gradient. */
   def pre_calculate_gradient(X:BIDMat.SMat) = {
     block_n = n / block_size
@@ -181,11 +188,19 @@ object RegressionModel {
     y_times_X = (1/block_size) * y_times_X
   }
 
+  // TODO Old L_2
+  ///** Calculates the L2 gradient at beta, where
+  //  *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T] + regularizer(beta)
+  //  */
+  //def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
+  //  return 2 * x_squared TMult(beta.t, null) * x_squared - 2 * y_times_X
+  //}
+
   /** Calculates the L2 gradient at beta, where
-    *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T] + regularizer(beta)
+    *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    return 2 * beta * x_squared - 2 * y_times_X
+    return 2 * (beta * X - Y) *^ X
   }
 
   /* Returns sum((v1 - v2).^2) */
@@ -196,16 +211,19 @@ object RegressionModel {
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
   def train(x:BIDMat.SMat):BIDMat.FMat = {
-    pre_calculate_gradient(x)
+    //pre_calculate_gradient(x)
 
     // SGD
+    println("beginning stochastic gradient descent")
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
 
     do {
       beta_prev = beta
       beta = beta - gamma * l2_gradient(beta)
-    } while (rss(beta,beta_prev) > sgd_tolerance)
+    } while (false)
+    //} while (rss(beta,beta_prev) > sgd_tolerance)
+    println("convergence...not")
 
     return beta
   }
@@ -215,8 +233,6 @@ object RegressionModel {
   def predict(beta: BIDMat.FMat, x: BIDMat.SMat):BIDMat.FMat = {
     return beta * x
   }
-
-  // TODO WHAT should be sparse, what should be dense
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
@@ -229,6 +245,8 @@ object RegressionModel {
     var predictions:BIDMat.FMat = zeros(1,1);
 
     for (i <- 1 to k) {
+      println("Beginning fold %d".format(i))
+
       // Get training/testing
       if (i != k) {
         training_set = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
@@ -246,6 +264,7 @@ object RegressionModel {
 
       // Calculate tp, fp, tn, fn
       // sort pred
+      var (sorted, order) = sortdown2(predictions)
       // for each pred
       //   compute fpr and tpr as if pred is threshold
       // go through scores, looking for ticks
