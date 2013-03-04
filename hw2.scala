@@ -170,20 +170,22 @@ object RegressionModel {
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    return 2 * (beta * X - Y) * X.t
+    return 2 * (beta * X - Y) *^ X
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
   def train():BIDMat.FMat = {
     println("beginning stochastic gradient descent")
+    var time = System.currentTimeMillis
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
-
     do {
       beta_prev = beta
       beta = beta - gamma * l2_gradient(beta)
     } while (maxi(abs(beta), 2)(0,0) > sgd_tolerance)
+    println("One round of training done in %s seconds.".format( (System.currentTimeMillis-time)/1000.0) )
+    println("beta = %s".format(beta))
     println("convergence...not")
 
     return beta
@@ -246,8 +248,12 @@ object RegressionModel {
     } else if (command == "cross_validate") {
       cross_validate(10)
     } else {
+      var time = System.currentTimeMillis
       X = load("/Users/Davidius/294-1-hw2/data/processed.mat", "X")
-      Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")
+      println("X loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))
+      time = System.currentTimeMillis
+      Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")  
+      println("Y loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))          
       setGlobals()
       train()
     }
