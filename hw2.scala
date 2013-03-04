@@ -45,9 +45,8 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 5
-  val gamma = 0.00000002
-  val diminisher = 0.9
-  val lambda = 0.01
+  val gamma = 0.00000001
+  val lambda = 0
   val k = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
@@ -188,16 +187,16 @@ object RegressionModel {
     do {
       beta_prev = beta
       l2_grad = l2_gradient(beta)
-      if (i < 14) {
-        beta = beta - (gamma / scala.math.pow(i, 1.5)) * l2_grad
+      if (i < 12) {
+        beta = beta - (gamma / scala.math.pow(i, 1)) * l2_grad
         println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
         time = System.currentTimeMillis        
       } else if (i < 50) {
-        beta = beta - (gamma / scala.math.pow(i, 1.2)) * l2_grad
+        beta = beta - (gamma / scala.math.pow(i, 0.7)) * l2_grad
         println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
         time = System.currentTimeMillis
       } else {
-        beta = beta - (gamma / scala.math.pow(i, 0.8)) * l2_grad
+        beta = beta - (gamma / scala.math.pow(i, 0.5)) * l2_grad
         println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
         time = System.currentTimeMillis
       }
