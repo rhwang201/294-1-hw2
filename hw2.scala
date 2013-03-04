@@ -169,13 +169,14 @@ object RegressionModel {
   /** Calculates the L2 gradient at beta, where
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
-  def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
+  def l2_gradient(beta: BIDMat.FMat, X: BIDMat.SMat, Y: BIDMat.FMat)
+        :BIDMat.FMat = {
     return 2 * (beta * X - Y) *^ X + 2 * lambda * beta
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
-  def train():BIDMat.FMat = {
+  def train(X: BIDMat.SMat, Y:BIDMat.FMat):BIDMat.FMat = {
     println("beginning stochastic gradient descent")
     var time = System.currentTimeMillis
     var l2_grad = row(1, 2)
@@ -185,14 +186,14 @@ object RegressionModel {
 
     do {
       beta_prev = beta
-      l2_grad = l2_gradient(beta)
+      l2_grad = l2_gradient(beta, X, Y)
       beta = beta - gamma * l2_grad
 
       println("iteration %d in %s seconds.\nbeta = %s".format(i,
           (System.currentTimeMillis-time)/1000.0, beta))
       time = System.currentTimeMillis
       i = i + 1
-    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
+    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance) // BAD CONDITION
 
     println("iteration %d in %s seconds.\nbeta = %s".format(i,
         (System.currentTimeMillis-time)/1000.0, beta))
@@ -201,10 +202,62 @@ object RegressionModel {
     return beta
   }
 
+  /** FOO */
+  def train2(X: BIDMat.SMat, Y:BIDMat.FMat, k:Int):BIDMat.FMat = {
+    println("beginning stochastic gradient descent V2 yeaaa")
+    var time = System.currentTimeMillis
+    var l2_grad = row(1, 2)
+    var beta:BIDMat.FMat = zeros(1,d)
+    var beta_prev:BIDMat.FMat = zeros(1,d)
+    var predictions:BIDMat.FMat = zeros(1,1)
+    var i = 0
+    var x_vals = new Array[Float](k)
+    var errors = new Array[Float](k)
+
+    do {
+      beta_prev = beta
+      l2_grad = l2_gradient(beta, X, Y)
+      beta = beta - gamma * l2_grad
+
+      println("iteration %d in %s seconds.\nbeta = %s".format(i,
+          (System.currentTimeMillis-time)/1000.0, beta))
+      time = System.currentTimeMillis
+
+      // Calculate error
+      predictions = predict(beta, X)
+
+      x_vals(i) = i
+      errors(i) = nnz(predictions - Y)
+
+      i = i + 1
+    } while (i < k)
+
+    println("iteration %d in %s seconds.\nbeta = %s".format(i,
+        (System.currentTimeMillis-time)/1000.0, beta))
+
+    println("we outta here")
+    plot(col(x_vals), col(errors))
+
+    return beta
+  }
+
+
   /** Returns the row vector of predictions for input X, an dxn matrix,
     *   y_hat = beta_hat * X */
-  def predict(beta: BIDMat.FMat, x: BIDMat.SMat):BIDMat.FMat = {
-    return beta * x
+  def predict(beta: BIDMat.FMat, X: BIDMat.SMat):BIDMat.FMat = {
+    return beta * X
+  }
+
+  /** Trains and tests on one fold. */
+  def train_once() = {
+    val set_size = n / 10 
+    val i = 1
+    var training_set:BIDMat.SMat = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
+    var training_labels:BIDMat.FMat = Y(?, 0 to (i-1)*set_size - 1) \ Y(?, i*set_size to n - 1)
+    var testing_set:BIDMat.SMat = X(?, (i-1)*set_size to i*set_size - 1)
+    var testing_labels:BIDMat.FMat = Y(?, (i-1)*set_size to i*set_size - 1)
+
+    var beta = train2(training_set, training_labels, 25)
   }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
@@ -212,7 +265,9 @@ object RegressionModel {
     // Partition data
     val set_size = n / k
     var training_set:BIDMat.SMat = sprand(1,1,0.5)
+    var training_labels:BIDMat.FMat = zeros(1,1)
     var testing_set:BIDMat.SMat = sprand(1,1,0.5)
+    var testing_labels:BIDMat.FMat = zeros(1,1)
 
     var beta:BIDMat.FMat = zeros(1,1);
     var predictions:BIDMat.FMat = zeros(1,1);
@@ -223,14 +278,18 @@ object RegressionModel {
       // Get training/testing
       if (i != k) {
         training_set = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
+        training_labels = Y(?, 0 to (i-1)*set_size - 1) \ Y(?, i*set_size to n - 1)
         testing_set = X(?, (i-1)*set_size to i*set_size - 1)
+        testing_labels = Y(?, (i-1)*set_size to i*set_size - 1)
       } else {
         training_set = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
+        training_labels = Y(?, 0 to (i-1)*set_size - 1) \ Y(?, i*set_size to n - 1)
         testing_set = X(?, (i-1)*set_size to n - 1)
+        testing_labels = Y(?, (i-1)*set_size to n - 1)
       }
 
       // Train
-      //beta = train(training_set)
+      beta = train(training_set, training_labels)
 
       // Test
       predictions = predict(beta, testing_set)
@@ -238,9 +297,54 @@ object RegressionModel {
       // Calculate tp, fp, tn, fn
       // sort pred
       var (sorted, order) = sortdown2(predictions)
+      testing_labels = testing_labels(order)
+      var cur_n = sorted.ncols
+      var fpr: Array[Float] = new Array[Float](cur_n)
+      var tpr: Array[Float] = new Array[Float](cur_n)
+      
       // for each pred
-      //   compute fpr and tpr as if pred is threshold
+      for (i <- 0 to cur_n-1) {
+        // compute fpr and tpr as if pred is threshold
+        var threshold = sorted(i)
+        var num_pred_pos = i+1
+        var num_pred_neg = cur_n - num_pred_pos
+
+        var false_pos = 0
+        for (j <- 0 to i-1) {
+          if (testing_labels(j) < threshold) {
+            false_pos = false_pos + 1
+          }
+        }
+        var true_pos = num_pred_pos - false_pos
+
+        var num_pos = 0
+        var num_neg = 0
+        for (k <- 0 to cur_n-1) {
+          if (testing_labels(k) > threshold) {
+            num_pos = num_pos + 1
+          } else {
+            num_neg = num_neg + 1
+          }
+        }
+
+        fpr(i) = false_pos / num_neg
+        tpr(i) = true_pos / num_pos
+      }
+
       // go through scores, looking for ticks
+      var tick_n:Int = 1
+      var tick_size:Double = 0.01
+      var n_ticks:Int = (1/tick_size).toInt
+      var x_plot: Array[Double] = new Array[Double](n_ticks)
+      var tpr_plot: Array[Double] = new Array[Double](n_ticks)
+      for (i <- 0 to cur_n-1) {
+        if (fpr(i)> tick_n * tick_size) {
+          x_plot(tick_n-1) = tick_n*tick_size
+          tpr_plot(tick_n-1) = tpr(i)
+          tick_n = tick_n + 1
+        }
+      }
+      val TODO = plot(col(x_plot), col(tpr_plot))
 
     }
     // Plot error vs training_size
@@ -265,7 +369,8 @@ object RegressionModel {
       Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")  
       println("Y loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))          
       setGlobals()
-      train()
+      //train(X,Y)
+      train_once()
     }
 
   }
