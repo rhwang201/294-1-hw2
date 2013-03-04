@@ -13,6 +13,7 @@ import scala.collection.mutable
 import scala.math
 import scala.util.control.Breaks._
 import java.io._
+//import java.math._
 import BIDMat.{Mat, FMat, DMat, IMat, CMat, BMat, CSMat, SMat, SDMat, GMat, GIMat, GSMat, HMat}
 import BIDMat.MatFunctions._
 import BIDMat.SciFunctions._
@@ -44,8 +45,9 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 5
-  val gamma = 0.000000001
-  val lambda = 0.001
+  val gamma = 0.00000002
+  val diminisher = 0.9
+  val lambda = 0.01
   val k = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
@@ -181,21 +183,33 @@ object RegressionModel {
     var l2_grad = row(1, 2)
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
+    var i = 1
+
     do {
       beta_prev = beta
       l2_grad = l2_gradient(beta)
-      beta = beta - gamma * l2_grad
-    println("another round of training done in %s seconds.\nbeta = %s\nmax(beta) = %s".format( (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
-    time = System.currentTimeMillis
+      if (i < 14) {
+        beta = beta - (gamma / scala.math.pow(i, 1.5)) * l2_grad
+        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
+        time = System.currentTimeMillis        
+      } else if (i < 50) {
+        beta = beta - (gamma / scala.math.pow(i, 1.2)) * l2_grad
+        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
+        time = System.currentTimeMillis
+      } else {
+        beta = beta - (gamma / scala.math.pow(i, 0.8)) * l2_grad
+        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
+        time = System.currentTimeMillis
+      }
+      i = i + 1
     } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
-    println("another round of training done in %s seconds.\nbeta = %s\nmax(beta) = %s".format( (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
+    println("iteration %s in %s seconds.\nbeta = %s\nmax(l2_grad) = %s".format( i, (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
     println("convergence")
-
     return beta
   }
 
-  /** Returns the vector of predictions for input X, an dxn matrix,
-    *   y_hat = beta_hat * X_hat */
+  /** Returns the row vector of predictions for input X, an dxn matrix,
+    *   y_hat = beta_hat * X */
   def predict(beta: BIDMat.FMat, x: BIDMat.SMat):BIDMat.FMat = {
     return beta * x
   }
