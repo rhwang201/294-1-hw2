@@ -43,7 +43,7 @@ object RegressionModel {
   var d = 0
   var n = 0
 
-  val sgd_tolerance = 0.001
+  val sgd_tolerance = 0.1
   val gamma = 0.25
 
   val k = 0
@@ -170,21 +170,12 @@ object RegressionModel {
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
     */
   def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-    val b:FMat = beta * X - Y
-    return 2 * b * X.t
-  }
-
-  /* Returns sum((v1 - v2).^2) */
-  def rss(v1: BIDMat.FMat, v2: BIDMat.FMat):Float = {
-    return 0 // TODO
+    return 2 * (beta * X - Y) * X.t
   }
 
   /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
     * function, returning the vector beta of parameters. */
   def train():BIDMat.FMat = {
-    //pre_calculate_gradient(x)
-
-    // SGD
     println("beginning stochastic gradient descent")
     var beta:BIDMat.FMat = zeros(1,d)
     var beta_prev:BIDMat.FMat = zeros(1,d)
@@ -192,8 +183,7 @@ object RegressionModel {
     do {
       beta_prev = beta
       beta = beta - gamma * l2_gradient(beta)
-    } while (false)
-    //} while (rss(beta,beta_prev) > sgd_tolerance)
+    } while (maxi(abs(beta), 2)(0,0) > sgd_tolerance)
     println("convergence...not")
 
     return beta
