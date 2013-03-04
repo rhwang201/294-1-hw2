@@ -43,8 +43,8 @@ object RegressionModel {
   var d = 0
   var n = 0
 
-  val sgd_tolerance = 0.1
-  val gamma = 0.000001
+  val sgd_tolerance = 5
+  val gamma = 0.000000001
   val lambda = 0.001
   val k = 0
 
@@ -185,10 +185,10 @@ object RegressionModel {
       beta_prev = beta
       l2_grad = l2_gradient(beta)
       beta = beta - gamma * l2_grad
-    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
+    println("another round of training done in %s seconds.\nbeta = %s\nmax(beta) = %s".format( (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
     time = System.currentTimeMillis
     } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
-    println("another round of training done in %s seconds.\nbeta = %s".format( (System.currentTimeMillis-time)/1000.0, beta) )
+    println("another round of training done in %s seconds.\nbeta = %s\nmax(beta) = %s".format( (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
     println("convergence")
 
     return beta
