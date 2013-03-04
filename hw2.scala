@@ -31,7 +31,7 @@ object RegressionModel {
 
   // Initialize matrices
   var X:SMat = sprand(1,1, 0.5) // dxn data matrix
-  var Y:FMat = sprand(1,1, 0.5) // 1xn label row vector
+  var Y:FMat = zeros(1,1) // 1xn label row vector
   var Y_t = sprand(1,1, 0.5)
   var x_squared = zeros(1,1) // dxd matrix
   var y_times_X = zeros(1,1) // 1xd row vector
@@ -101,20 +101,20 @@ object RegressionModel {
 
           if (next_block) {
             X = sparse(icol_row, icol_col, vals, d, 1)
-            Y = sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+            Y = row(cur_rating)
             next_block = false
           } else {
             X = X \ sparse(icol_row, icol_col, vals, d, 1)
-            Y = Y \ sparse(izeros(1,1), izeros(1,1), cur_rating, 1, 1)
+            Y = Y \ cur_rating
           }
           got_rating = false
 
           if (review_count % save_step == 0) {
-            time = System.currentTimeMillis            
+            time = System.currentTimeMillis
             saveAs(processed_x_path+"%s.mat".format(review_count/save_step), X, "X", Y, "Y")
             println( "batch number %s saved in %s seconds.".format(review_count/save_step, (System.currentTimeMillis - time)/1000.0) )
             next_block = true
-            time = System.currentTimeMillis       
+            time = System.currentTimeMillis
           }
 
           n = n + 1
@@ -154,47 +154,17 @@ object RegressionModel {
   /** Concatenates l_i blocks of X and Y. */
   def loadX(l_i:Int) = {
     val processed_template = processed_x_path + "%d.mat"
+    var cur:BIDMat.FMat = zeros(1,1)
     X = load(processed_template.format(1), "X")
     Y = load(processed_template.format(1), "Y")
     for (i <- 2 to l_i) {
       X = X \ load(processed_template.format(i), "X")
-      Y = Y \ load(processed_template.format(i), "Y")
+      cur = load(processed_template.format(i), "Y")
+      Y = Y \ cur
     }
     saveAs("/Users/Davidius/294-1-hw2/data/processed.mat", X, "X", Y, "Y")
     println("Finished loading and constructing X and Y")
   }
-
-  // TODO Jcanny says not to use this?
-  /** Precalculates XX^T and YX_T for use in l2_gradient. */
-  def pre_calculate_gradient(X:BIDMat.SMat) = {
-    block_n = n / block_size
-    block_remainder = n % block_size
-
-    x_squared = zeros(d,d)
-    y_times_X = zeros(1,d)
-    var block = sprand(1,1, 0.5)
-    var block_transposed = sprand(1,1, 0.5)
-    for (i <- 0 to block_n - 1) {
-      block = X(?, block_size*i to block_size*(i+1) - 1)
-      block_transposed = block.t
-      x_squared = x_squared + block * block_transposed
-      y_times_X = y_times_X + Y * block_transposed 
-    }
-    block = X(?, block_size*block_n to block_size*block_n + block_remainder)
-    x_squared = x_squared + block * block_transposed
-    y_times_X = y_times_X + Y * block_transposed 
-
-    x_squared = (1/block_size) * x_squared
-    y_times_X = (1/block_size) * y_times_X
-  }
-
-  // TODO Old L_2
-  ///** Calculates the L2 gradient at beta, where
-  //  *   L_2(beta) = E[-2y*X^T + 2*beta*X*X^T] + regularizer(beta)
-  //  */
-  //def l2_gradient(beta: BIDMat.FMat):BIDMat.FMat = {
-  //  return 2 * x_squared TMult(beta.t, null) * x_squared - 2 * y_times_X
-  //}
 
   /** Calculates the L2 gradient at beta, where
     *   L_2(beta) = 2(\beta X - Y) X^T + regularizer(beta)
