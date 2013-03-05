@@ -210,7 +210,7 @@ object RegressionModel {
 
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
-      var mse:BIDMat.FMat = (predictions - Y) * (predictions - Y).t / xn
+      var mse:BIDMat.FMat = ((r_predictions - Y) * (r_predictions - Y).t) / xn
       mse_errors(i) = mse(0,0)
 
       if (i % 10 == 0) {
@@ -221,11 +221,6 @@ object RegressionModel {
           println("prediction #%s = %s".format(j, r_predictions(0, j)))
         }
         println("num_errors = %s; \nmse_errors = %s\n\n\n".format(errors(i), mse_errors(i)))
-        for (q <- 0 to xn - 1) {
-          if (abs(r_predictions(0, q) - Y(0, q))(0, 0) > 4) {
-            println("Outlier r_prediction(0, %s) = %s.".format(q, r_predictions(0, q)))
-          }
-        }
       }
     }
 
@@ -252,7 +247,67 @@ object RegressionModel {
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
     var beta = train2(training_set, training_labels, 200)
-  }
+
+    // Test
+    var predictions = predict(beta, testing_set)
+
+    // Calculate tp, fp, tn, fn
+    // sort pred
+    var (sorted, order) = sortdown2(predictions)
+    testing_labels = testing_labels(order)
+    var cur_n = sorted.ncols
+    var fpr: Array[Float] = new Array[Float](cur_n)
+    var tpr: Array[Float] = new Array[Float](cur_n)
+
+    // for each pred
+    for (i <- 0 to cur_n-1) {
+      // compute fpr and tpr as if pred is threshold
+      var threshold = sorted(i)
+      var num_pred_pos = i+1
+      var num_pred_neg = cur_n - num_pred_pos
+
+      var false_pos = 0
+      for (j <- 0 to i-1) {
+        if (testing_labels(j) < threshold) {
+          false_pos = false_pos + 1
+        }
+      }
+      var true_pos = num_pred_pos - false_pos
+
+      var num_pos = 1
+      var num_neg = 1
+      for (k <- 0 to cur_n-1) {
+        if (testing_labels(k) > threshold) {
+          num_pos = num_pos + 1
+        } else {
+          num_neg = num_neg + 1
+        }
+      }
+
+      fpr(i) = false_pos / num_neg
+      tpr(i) = true_pos / num_pos
+      if (i % 25 == 0) {
+        println("fpr(%s) = %s; tpr(%s) = %s.".format(i, fpr(i), i, tpr(i)))
+      }
+    }
+
+    // go through scores, looking for ticks
+    var tick_n:Int = 1
+    var tick_size:Double = 0.01
+    var n_ticks:Int = (1/tick_size).toInt
+    var x_plot: Array[Double] = new Array[Double](n_ticks)
+    var tpr_plot: Array[Double] = new Array[Double](n_ticks)
+    for (i <- 0 to cur_n-1) {
+      if (fpr(i)> tick_n * tick_size) {
+        x_plot(tick_n-1) = tick_n*tick_size
+        tpr_plot(tick_n-1) = tpr(i)
+        tick_n = tick_n + 1
+      }
+    }
+    val ctpr = col(tpr_plot)
+    println("col(tpr).nrows = "+ctpr.nrows)
+    plot(col(x_plot), ctpr)
+}
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {

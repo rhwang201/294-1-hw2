@@ -25,10 +25,10 @@ Special care had to be taken in constructing our data matrix.  Given the provide
 
 \section{Regression}
 Given $X$ and $Y$, we performed linear regression with $L_2$ loss function along with Lasso regularization by using stochastic gradient descent.  This means we updated our weight vector $\beta$ according to:\\\\
-\centerline{$\beta_{t+1} \leftarrow \beta_{t} - \gamma \nabla L(\beta)$}
+\centerline{$\beta_{t+1} \leftarrow \beta_{t} - \gamma \nabla L(\beta, x, y)$}
 where\\\\
-\centerline{$\nabla L(\beta) = E(2X^T X \beta - 2 y^T x) + 2 \lambda \beta$}
-We repeated these updates for TODO iterations and plotted error rates versus iteration to determine reasonable $i$.
+\centerline{$\nabla L(\beta, x, y) = E(2x^T x \beta - 2 y^T x) + 2 \lambda \beta$}
+We repeated these updates for TODO iterations and plotted error rates versus iteration to determine reasonable $i$.  To evaluate our model, we performed 10-fold cross-validation, splitting up our data into 10 sections.  We then trained on 9 sections and evaluated on the last for all possible rotations.  In each iteration, we also generated ROC plots.  This was done by first sorting predictions in decreasing order.  Then, for each point, we compute the false positive rate (FPR) and true positive rate (TPR) as if the point were the threshold of classification.  Whenever we notice the FPR hits a "tick" on the graph (for example, going from <0.01 to >0.01), we record the corresponding TPR.  We average the TPR across all cross-validation iterations to obtain the area under the curve (AUC).    We also average the ROC plot across all folds.  
 
 \section{Results}
 
