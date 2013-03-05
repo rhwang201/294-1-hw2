@@ -11,7 +11,7 @@ import scala.io._
 import scala.sys.process._
 import scala.collection.mutable
 import scala.math
-import scala.util.control.Breaks._
+import scala.util.Random
 import java.io._
 //import java.math._
 import BIDMat.{Mat, FMat, DMat, IMat, CMat, BMat, CSMat, SMat, SDMat, GMat, GIMat, GSMat, HMat}
@@ -188,8 +188,10 @@ object RegressionModel {
     var x_vals = new Array[Float](k)
     var errors = new Array[Float](k)
 
+    var rand = new Random()
+
     for (i <- 1 to k) {
-      l2_grad = l2_gradient(beta, X, Y)
+      l2_grad = l2_gradient(beta, X(?, rand.nextInt(n)), Y)
       beta = beta - (gamma / scala.math.pow(i, 1)) * l2_grad
 
       println("iteration %d in %s seconds.\nbeta = %s".format(i,
@@ -206,11 +208,10 @@ object RegressionModel {
         println("prediction #%s = %s".format(i, r_predictions(0, j)))
       }
       println("\n\n\n")
-      i = i + 1
-    } while (i < k)
+    }
 
-    println("iteration %d in %s seconds.\nbeta = %s".format(i,
-        (System.currentTimeMillis-time)/1000.0, beta))
+    //println("iteration %d in %s seconds.\nbeta = %s".format(i,
+    //    (System.currentTimeMillis-time)/1000.0, beta))
 
     println("we outta here")
     plot(col(x_vals), col(errors))
@@ -265,7 +266,7 @@ object RegressionModel {
       }
 
       // Train
-      beta = train(training_set, training_labels)
+      beta = train2(training_set, training_labels, 50) // TODO CHANGE ME
 
       // Test
       predictions = predict(beta, testing_set)
