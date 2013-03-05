@@ -231,10 +231,14 @@ object RegressionModel {
 
       // Calculate error
       predictions = predict(beta, X)
-
+      var r_predictions = round(predictions)
       x_vals(i) = i
-      errors(i) = nnz(round(predictions) - Y)
-
+      errors(i) = nnz(r_predictions - Y)
+      for (j <- 0 to 10) {
+        println("Y #%s = %s".format(i, Y(0, j)))
+        println("prediction #%s = %s".format(i, r_predictions(0, j)))
+      }
+      println("\n\n\n")
       i = i + 1
     } while (i < k)
 
