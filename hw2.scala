@@ -247,7 +247,62 @@ object RegressionModel {
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
     var beta = train2(training_set, training_labels, 100)
-  }
+
+    // Test
+    var predictions = predict(beta, testing_set)
+
+    // Calculate tp, fp, tn, fn
+    // sort pred
+    var (sorted, order) = sortdown2(predictions)
+    testing_labels = testing_labels(order)
+    var cur_n = sorted.ncols
+    var fpr: Array[Float] = new Array[Float](cur_n)
+    var tpr: Array[Float] = new Array[Float](cur_n)
+
+    // for each pred
+    for (i <- 0 to cur_n-1) {
+      // compute fpr and tpr as if pred is threshold
+      var threshold = sorted(i)
+      var num_pred_pos = i+1
+      var num_pred_neg = cur_n - num_pred_pos
+
+      var false_pos = 0
+      for (j <- 0 to i-1) {
+        if (testing_labels(j) < threshold) {
+          false_pos = false_pos + 1
+        }
+      }
+      var true_pos = num_pred_pos - false_pos
+
+      var num_pos = 0
+      var num_neg = 0
+      for (k <- 0 to cur_n-1) {
+        if (testing_labels(k) > threshold) {
+          num_pos = num_pos + 1
+        } else {
+          num_neg = num_neg + 1
+        }
+      }
+
+      fpr(i) = false_pos / num_neg
+      tpr(i) = true_pos / num_pos
+    }
+
+    // go through scores, looking for ticks
+    var tick_n:Int = 1
+    var tick_size:Double = 0.01
+    var n_ticks:Int = (1/tick_size).toInt
+    var x_plot: Array[Double] = new Array[Double](n_ticks)
+    var tpr_plot: Array[Double] = new Array[Double](n_ticks)
+    for (i <- 0 to cur_n-1) {
+      if (fpr(i)> tick_n * tick_size) {
+        x_plot(tick_n-1) = tick_n*tick_size
+        tpr_plot(tick_n-1) = tpr(i)
+        tick_n = tick_n + 1
+      }
+    }
+    plot(col(x_plot), col(tpr_plot))
+}
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
