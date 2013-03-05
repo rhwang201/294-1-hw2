@@ -179,7 +179,7 @@ object RegressionModel {
     return 2 * (beta * X - Y) * X.t + 2 * lambda * beta
   }
 
-  /** FOO */
+  /** Stochastic Gradient Descent */
   def train2(X: BIDMat.SMat, Y:BIDMat.FMat, k:Int):BIDMat.FMat = {
     println("beginning stochastic gradient descent V2 yeaaa")
     var time = System.currentTimeMillis
@@ -239,6 +239,24 @@ object RegressionModel {
     return beta * X
   }
 
+  /** Returns the top k influential positive and negative terms*/
+  def most_influential(beta: BIDMat.FMat, k: Int):Array[String] = {
+    // Load smap
+    val smap:CSMat=load(mat_file, "smap")
+
+    // Sort beta
+    val (sorted, order) = sortdown2(beta,2)
+    val n_cols = sorted.ncols
+
+    // Profit
+    var ret = new Array[String](2*k)
+    for (i <- 0 to k-1) {
+      ret(i) = smap{order(i)}
+      ret(i+k) = smap{order(n_cols-1-i)}
+    }
+    return ret
+  }
+
   /** Trains and tests on one fold. */
   def train_once() = {
     val set_size = n / 10
@@ -249,6 +267,16 @@ object RegressionModel {
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
     var beta = train2(training_set, training_labels, num_iter)
+
+    val key_words = most_influential(beta, 10)
+    println("Most positively influential words:")
+    for (i <- 0 to 10) {
+      println("  %s".format(key_words(i)))
+    }
+    println("Most negatively influential words:")
+    for (i <- 0 to 10) {
+      println("  %s".format(key_words(i+10)))
+    }
 
     // Test
     var predictions = predict(beta, testing_set)
