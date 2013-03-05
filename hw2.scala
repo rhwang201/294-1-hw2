@@ -307,7 +307,7 @@ object RegressionModel {
     val ctpr = col(tpr_plot)
     println("col(tpr).nrows = "+ctpr.nrows)
     plot(col(x_plot), ctpr)
-}
+  }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
