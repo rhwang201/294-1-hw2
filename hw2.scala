@@ -246,7 +246,7 @@ object RegressionModel {
     var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
-    var beta = train2(training_set, training_labels, 200)
+    var beta = train2(training_set, training_labels, 50)
 
     // Test
     var predictions = predict(beta, testing_set)
@@ -266,16 +266,17 @@ object RegressionModel {
       var num_pred_pos = i+1
       var num_pred_neg = cur_n - num_pred_pos
 
-      var false_pos = 0
+      var false_pos: Float = 0
       for (j <- 0 to i-1) {
         if (testing_labels(j) < threshold) {
+          //println("hi")
           false_pos = false_pos + 1
         }
       }
       var true_pos = num_pred_pos - false_pos
 
-      var num_pos = 1
-      var num_neg = 1
+      var num_pos: Float = 1
+      var num_neg: Float = 1
       for (k <- 0 to cur_n-1) {
         if (testing_labels(k) > threshold) {
           num_pos = num_pos + 1
@@ -286,9 +287,6 @@ object RegressionModel {
 
       fpr(i) = false_pos / num_neg
       tpr(i) = true_pos / num_pos
-      if (i % 25 == 0) {
-        println("fpr(%s) = %s; tpr(%s) = %s.".format(i, fpr(i), i, tpr(i)))
-      }
     }
 
     // go through scores, looking for ticks
@@ -305,7 +303,7 @@ object RegressionModel {
       }
     }
     val ctpr = col(tpr_plot)
-    println("col(tpr).nrows = "+ctpr.nrows)
+    println("col(tpr).nrows = %s\nnnz(col(tpr)) = %s".format(ctpr.nrows, nnz(ctpr)))
     plot(col(x_plot), ctpr)
 }
 
