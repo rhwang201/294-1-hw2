@@ -204,6 +204,14 @@ object RegressionModel {
       // Calculate error
       predictions = predict(beta, X)
       var r_predictions = round(predictions)
+      for (q <- 0 to xn) {
+        if (r_predictions(q) > 5.0) {
+          r_predictions(q) = 5.0
+        } else if (r_predictions(q) < 1.0) {
+          r_predictions(q) = 1.0
+        }
+      }
+
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
       for (j <- 0 to 9) {
