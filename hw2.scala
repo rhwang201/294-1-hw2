@@ -45,7 +45,7 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 5
-  val gamma = 0.00000002
+  val gamma = 0.0005
   val lambda = 0
   val k = 0
 
@@ -174,7 +174,7 @@ object RegressionModel {
     */
   def l2_gradient(beta: BIDMat.FMat, X: BIDMat.SMat, Y: BIDMat.FMat)
         :BIDMat.FMat = {
-    return 2 * (beta * X - Y) *^ X + 2 * lambda * beta
+    return 2 * (beta * X - Y) * X.t// + 2 * lambda * beta
   }
 
   /** FOO */
@@ -183,16 +183,19 @@ object RegressionModel {
     var time = System.currentTimeMillis
     var l2_grad = row(1, 2)
     var beta:BIDMat.FMat = zeros(1,d)
-
+    val xn = X.ncols
     var predictions:BIDMat.FMat = zeros(1,1)
     var x_vals = new Array[Float](k)
     var errors = new Array[Float](k)
 
     var rand = new Random()
 
-    for (i <- 1 to k) {
-      l2_grad = l2_gradient(beta, X(?, rand.nextInt(n)), Y)
-      beta = beta - (gamma / scala.math.pow(i, 1)) * l2_grad
+    for (i <- 1 to k - 1) {
+      var rn = rand.nextInt(xn)
+
+      l2_grad = l2_gradient(beta, X(?, rn), Y(?, rn))
+      println("l2_grad = %s".format(l2_grad))
+      beta = beta - (gamma / scala.math.pow(i, 0.5)) * l2_grad
 
       println("iteration %d in %s seconds.\nbeta = %s".format(i,
           (System.currentTimeMillis-time)/1000.0, beta))
@@ -203,7 +206,7 @@ object RegressionModel {
       var r_predictions = round(predictions)
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
-      for (j <- 0 to 10) {
+      for (j <- 0 to 9) {
         println("Y #%s = %s".format(j, Y(0, j)))
         println("prediction #%s = %s".format(j, r_predictions(0, j)))
       }
@@ -234,7 +237,7 @@ object RegressionModel {
     var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
-    var beta = train2(training_set, training_labels, 25)
+    var beta = train2(training_set, training_labels, 50)
   }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
