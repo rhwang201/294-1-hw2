@@ -45,7 +45,7 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 5
-  val gamma = 0.00000001
+  val gamma = 0.00000002
   val lambda = 0
   val k = 0
 
@@ -235,8 +235,8 @@ object RegressionModel {
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
       for (j <- 0 to 10) {
-        println("Y #%s = %s".format(i, Y(0, j)))
-        println("prediction #%s = %s".format(i, r_predictions(0, j)))
+        println("Y #%s = %s".format(j, Y(0, j)))
+        println("prediction #%s = %s".format(j, r_predictions(0, j)))
       }
       println("\n\n\n")
       i = i + 1
