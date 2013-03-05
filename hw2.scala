@@ -187,6 +187,7 @@ object RegressionModel {
     var predictions:BIDMat.FMat = zeros(1,1)
     var x_vals = new Array[Float](k)
     var errors = new Array[Float](k)
+    var rms_errors = new Array[Float](k)
 
     var rand = new Random()
 
@@ -203,6 +204,7 @@ object RegressionModel {
 
       // Calculate error
       predictions = predict(beta, X)
+
       var r_predictions = round(predictions)
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
@@ -211,13 +213,16 @@ object RegressionModel {
         println("prediction #%s = %s".format(j, r_predictions(0, j)))
       }
       println("\n\n\n")
+
+      var rms:BIDMat.FMat = (predictions - Y) * (predictions - Y).t
+      rms_errors(i) = rms(0,0)
     }
 
     //println("iteration %d in %s seconds.\nbeta = %s".format(i,
     //    (System.currentTimeMillis-time)/1000.0, beta))
 
     println("we outta here")
-    plot(col(x_vals), col(errors))
+    plot(col(x_vals), col(rms_errors))
 
     return beta
   }
