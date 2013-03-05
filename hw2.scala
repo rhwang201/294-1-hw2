@@ -53,13 +53,13 @@ object RegressionModel {
   def process() = {
     var time = System.currentTimeMillis
     val tokens:IMat = load(mat_file, "tokens")
-    println( "tokens loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
+    println( "tokens loaded in %s seconds".format((System.currentTimeMillis-time)/1000.0))
     time = System.currentTimeMillis
     val smap:CSMat=load(mat_file, "smap")
-    println( "smap loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
+    println( "smap loaded in %s seconds".format((System.currentTimeMillis-time)/1000.0))
     time = System.currentTimeMillis
     val scnt:IMat=load(mat_file, "scnt")
-    println( "scnt loaded in %s seconds".format((System.currentTimeMillis - time)/1000.0) )
+    println( "scnt loaded in %s seconds".format((System.currentTimeMillis-time)/1000.0))
 
     d = scnt.nrows
     var got_rating = false
@@ -89,15 +89,16 @@ object RegressionModel {
       if (cur_string == "<review>") {
         review_count += 1
         if (review_count % probe_step == 0) {
-          println( "currently processing review number %s at token %s; previous batch took %s seconds.".format(review_count, pre_i, (System.currentTimeMillis - time)/1000.0) )
+          println("currently processing review %s at token %s".format(review_count, pre_i))
+          println(" previous batch took %s secs.".format((System.currentTimeMillis - time)/1000.0))
           time = System.currentTimeMillis
         }
         cur_counts = mutable.Map.empty[Int, Int]
       // Finished review
       } else if (cur_string == "</review>") {
         if (got_rating) {
-          icol_col = izeros(cur_counts.size, 1)
           icol_row = icol(cur_counts.keys.toList)
+          icol_col = izeros(cur_counts.size, 1)
           vals = col(cur_counts.values.toArray)
 
           if (next_block) {
@@ -113,7 +114,8 @@ object RegressionModel {
           if (review_count % save_step == 0) {
             time = System.currentTimeMillis
             saveAs(processed_x_path+"%s.mat".format(review_count/save_step), X, "X", Y, "Y")
-            println( "batch number %s saved in %s seconds.".format(review_count/save_step, (System.currentTimeMillis - time)/1000.0) )
+            println("batch number %s saved in %s seconds.".format(
+              review_count/save_step, (System.currentTimeMillis - time)/1000.0))
             next_block = true
             time = System.currentTimeMillis
           }
@@ -175,53 +177,18 @@ object RegressionModel {
     return 2 * (beta * X - Y) *^ X + 2 * lambda * beta
   }
 
-  /** Performs stochastic gradient descent (SGD) to minimize the L_2 loss
-    * function, returning the vector beta of parameters. */
-  def train(X: BIDMat.SMat, Y:BIDMat.FMat):BIDMat.FMat = {
-    println("beginning stochastic gradient descent")
-    var time = System.currentTimeMillis
-    var l2_grad = row(1, 2)
-    var beta:BIDMat.FMat = zeros(1,d)
-    var beta_prev:BIDMat.FMat = zeros(1,d)
-    var i = 1
-
-    do {
-      beta_prev = beta
-      l2_grad = l2_gradient(beta, X, Y)
-      if (i < 12) {
-        beta = beta - (gamma / scala.math.pow(i, 1)) * l2_grad
-        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
-        time = System.currentTimeMillis        
-      } else if (i < 50) {
-        beta = beta - (gamma / scala.math.pow(i, 0.7)) * l2_grad
-        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
-        time = System.currentTimeMillis
-      } else {
-        beta = beta - (gamma / scala.math.pow(i, 0.5)) * l2_grad
-        println("iteration %s in %s seconds.\nmax(l2_grad) = %s\nbeta = %s".format( i, (System.currentTimeMillis-time)/1000.0, maxi(abs(l2_grad), 2)(0, 0), beta))
-        time = System.currentTimeMillis
-      }
-      i = i + 1
-    } while (maxi(abs(l2_grad), 2)(0,0) > sgd_tolerance)
-    println("iteration %s in %s seconds.\nbeta = %s\nmax(l2_grad) = %s".format( i, (System.currentTimeMillis-time)/1000.0, beta, maxi(abs(l2_grad), 2)(0, 0)))
-    println("convergence")
-    return beta
-  }
-
   /** FOO */
   def train2(X: BIDMat.SMat, Y:BIDMat.FMat, k:Int):BIDMat.FMat = {
     println("beginning stochastic gradient descent V2 yeaaa")
     var time = System.currentTimeMillis
     var l2_grad = row(1, 2)
     var beta:BIDMat.FMat = zeros(1,d)
-    var beta_prev:BIDMat.FMat = zeros(1,d)
+
     var predictions:BIDMat.FMat = zeros(1,1)
-    var i = 1
     var x_vals = new Array[Float](k)
     var errors = new Array[Float](k)
 
-    do {
-      beta_prev = beta
+    for (i <- 1 to k) {
       l2_grad = l2_gradient(beta, X, Y)
       beta = beta - (gamma / scala.math.pow(i, 1)) * l2_grad
 
@@ -231,12 +198,9 @@ object RegressionModel {
 
       // Calculate error
       predictions = predict(beta, X)
-
       x_vals(i) = i
       errors(i) = nnz(round(predictions) - Y)
-
-      i = i + 1
-    } while (i < k)
+    }
 
     println("iteration %d in %s seconds.\nbeta = %s".format(i,
         (System.currentTimeMillis-time)/1000.0, beta))
@@ -247,7 +211,6 @@ object RegressionModel {
     return beta
   }
 
-
   /** Returns the row vector of predictions for input X, an dxn matrix,
     *   y_hat = beta_hat * X */
   def predict(beta: BIDMat.FMat, X: BIDMat.SMat):BIDMat.FMat = {
@@ -256,12 +219,12 @@ object RegressionModel {
 
   /** Trains and tests on one fold. */
   def train_once() = {
-    val set_size = n / 10 
+    val set_size = n / 10
     val i = 1
-    var training_set:BIDMat.SMat = X(?, 0 to (i-1)*set_size - 1) \ X(?, i*set_size to n - 1)
-    var training_labels:BIDMat.FMat = Y(?, 0 to (i-1)*set_size - 1) \ Y(?, i*set_size to n - 1)
-    var testing_set:BIDMat.SMat = X(?, (i-1)*set_size to i*set_size - 1)
-    var testing_labels:BIDMat.FMat = Y(?, (i-1)*set_size to i*set_size - 1)
+    var training_set:BIDMat.SMat = X(?, set_size to n - 1)
+    var training_labels:BIDMat.FMat = Y(?, set_size to n - 1)
+    var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
+    var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
     var beta = train2(training_set, training_labels, 25)
   }
@@ -307,7 +270,7 @@ object RegressionModel {
       var cur_n = sorted.ncols
       var fpr: Array[Float] = new Array[Float](cur_n)
       var tpr: Array[Float] = new Array[Float](cur_n)
-      
+
       // for each pred
       for (i <- 0 to cur_n-1) {
         // compute fpr and tpr as if pred is threshold
@@ -372,8 +335,8 @@ object RegressionModel {
       X = load("/Users/Davidius/294-1-hw2/data/processed.mat", "X")
       println("X loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))
       time = System.currentTimeMillis
-      Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")  
-      println("Y loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))          
+      Y = load("/Users/Davidius/294-1-hw2/data/processed.mat", "Y")
+      println("Y loaded in %s seconds.".format( (System.currentTimeMillis - time)/1000.0 ))
       setGlobals()
       //train(X,Y)
       train_once()

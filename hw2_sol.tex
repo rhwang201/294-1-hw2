@@ -18,14 +18,22 @@
 \maketitle
 
 \section{Introduction}
-Linear regression is applied at scale to amazon.com review data.  
+Linear regression is applied at scale to amazon.com review data.  Given the tokenized version of Mark Dredze's sentiment data, we performed linear regression, cross validating and creating ROC and lift plots.
 
 \section{Data Processing}
+Special care had to be taken in constructing our data matrix.  Given the provided data files, we constructed $X$ in blocks, processing $block\_size$ reviews at a time, and then concatenating all the sparse matrices in the end.  We moved along the tokens files.  If we encountered a \textless review\textgreater tag, we knew we had started a new review.  Likewise, if we encountered a \textless rating\textgreater tag, we knew the next token had to be a rating.  For normal words, we kept a map of tokens to counts.  In this way, we constructed $X$.  We performed this transformation in blocks because DAVID HELLPP
 
 \section{Regression}
+Given $X$ and $Y$, we performed linear regression with $L_2$ loss function along with Lasso regularization by using stochastic gradient descent.  This means we updated our weight vector $\beta$ according to:\\\\
+\centerline{$\beta_{t+1} \leftarrow \beta_{t} - \gamma \nabla L(\beta)$}
+where\\\\
+\centerline{$\nabla L(\beta) = E(2X^T X \beta - 2 y^T x) + 2 \lambda \beta$}
+We repeated these updates for TODO iterations and plotted error rates versus iteration to determine reasonable $i$.
 
 \section{Results}
 
+
 \section{Performance}
+
 
 \end{document}
