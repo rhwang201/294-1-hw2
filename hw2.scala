@@ -46,7 +46,7 @@ object RegressionModel {
 
   val sgd_tolerance = 5
   val gamma = 0.0005
-  val lambda = 0
+  val lambda = 1
   val k = 0
 
   /** Processes the provided tokenized mat file into X, Y and saves it. */
@@ -174,7 +174,7 @@ object RegressionModel {
     */
   def l2_gradient(beta: BIDMat.FMat, X: BIDMat.SMat, Y: BIDMat.FMat)
         :BIDMat.FMat = {
-    return 2 * (beta * X - Y) * X.t// + 2 * lambda * beta
+    return 2 * (beta * X - Y) * X.t + 2 * lambda * beta
   }
 
   /** FOO */
@@ -187,7 +187,7 @@ object RegressionModel {
     var predictions:BIDMat.FMat = zeros(1,1)
     var x_vals = new Array[Float](k)
     var errors = new Array[Float](k)
-    var rms_errors = new Array[Float](k)
+    var mse_errors = new Array[Float](k)
 
     var rand = new Random()
 
@@ -195,18 +195,12 @@ object RegressionModel {
       var rn = rand.nextInt(xn)
 
       l2_grad = l2_gradient(beta, X(?, rn), Y(?, rn))
-      println("l2_grad = %s".format(l2_grad))
       beta = beta - (gamma / scala.math.pow(i, 0.5)) * l2_grad
-
-      println("iteration %d in %s seconds.\nbeta = %s".format(i,
-          (System.currentTimeMillis-time)/1000.0, beta))
-      time = System.currentTimeMillis
 
       // Calculate error
       predictions = predict(beta, X)
-
       var r_predictions = round(predictions)
-      for (q <- 0 to xn) {
+      for (q <- 0 to xn - 1) {
         if (r_predictions(q) > 5.0) {
           r_predictions(q) = 5.0
         } else if (r_predictions(q) < 1.0) {
@@ -216,21 +210,23 @@ object RegressionModel {
 
       x_vals(i) = i
       errors(i) = nnz(r_predictions - Y)
-      for (j <- 0 to 9) {
-        println("Y #%s = %s".format(j, Y(0, j)))
-        println("prediction #%s = %s".format(j, r_predictions(0, j)))
-      }
-      println("\n\n\n")
+      var mse:BIDMat.FMat = (predictions - Y) * (predictions - Y).t / xn
+      mse_errors(i) = mse(0,0)
 
-      var rms:BIDMat.FMat = (predictions - Y) * (predictions - Y).t
-      rms_errors(i) = rms(0,0)
+      if (i % 10 == 0) {
+        println("iteration %d...\nbeta = %s".format(i, beta))
+        println("l2_grad = %s".format(l2_grad))
+        for (j <- 0 to 9) {
+          println("Y #%s = %s".format(j, Y(0, j)))
+          println("prediction #%s = %s".format(j, r_predictions(0, j)))
+        }
+        println("num_errors = %s; \nrms_errors = %s\n\n\n".format(errors(i), mse_errors(i)))
+      }
     }
 
-    //println("iteration %d in %s seconds.\nbeta = %s".format(i,
-    //    (System.currentTimeMillis-time)/1000.0, beta))
-
     println("we outta here")
-    plot(col(x_vals), col(rms_errors))
+    plot(col(x_vals), col(errors))
+    plot(col(x_vals), col(mse_errors))
 
     return beta
   }
@@ -250,7 +246,7 @@ object RegressionModel {
     var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
-    var beta = train2(training_set, training_labels, 50)
+    var beta = train2(training_set, training_labels, 100)
   }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
