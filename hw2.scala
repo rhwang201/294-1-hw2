@@ -47,7 +47,7 @@ object RegressionModel {
   val num_iter = 200
   val sgd_tolerance = 5
   val gamma = 0.001
-  val diminisher = 0.3
+  val diminisher = 0.8
   val lambda = 1
   val k = 0
 
