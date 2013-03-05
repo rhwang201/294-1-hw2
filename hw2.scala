@@ -44,8 +44,10 @@ object RegressionModel {
   var d = 0
   var n = 0
 
+  val num_iter = 200
   val sgd_tolerance = 5
   val gamma = 0.001
+  val diminisher = 0.3
   val lambda = 1
   val k = 0
 
@@ -191,11 +193,11 @@ object RegressionModel {
 
     var rand = new Random()
 
-    for (i <- 1 to k - 1) {
+    for (i <- 0 to k - 1) {
       var rn = rand.nextInt(xn)
 
       l2_grad = l2_gradient(beta, X(?, rn), Y(?, rn))
-      beta = beta - (gamma / scala.math.pow(i, 0.5)) * l2_grad
+      beta = beta - (gamma / scala.math.pow(i+1, diminisher)) * l2_grad
 
       // Calculate error
       predictions = predict(beta, X)
@@ -213,7 +215,7 @@ object RegressionModel {
       var mse:BIDMat.FMat = ((r_predictions - Y) * (r_predictions - Y).t) / xn
       mse_errors(i) = mse(0,0)
 
-      if (i % 10 == 0) {
+      if (i % 10 == 9) {
         println("iteration %d...\nbeta = %s".format(i, beta))
         println("l2_grad = %s".format(l2_grad))
         for (j <- 0 to 9) {
@@ -246,7 +248,7 @@ object RegressionModel {
     var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
-    var beta = train2(training_set, training_labels, 50)
+    var beta = train2(training_set, training_labels, num_iter)
 
     // Test
     var predictions = predict(beta, testing_set)
@@ -275,8 +277,13 @@ object RegressionModel {
       }
       var true_pos = num_pred_pos - false_pos
 
-      var num_pos: Float = 1
-      var num_neg: Float = 1
+      var num_pos: Float = 0
+      var num_neg: Float = 0
+      if (i == 0) {
+        num_pos = 1
+      } else if (i == cur_n - 1) {
+        num_neg = 1
+      }
       for (k <- 0 to cur_n-1) {
         if (testing_labels(k) > threshold) {
           num_pos = num_pos + 1
@@ -302,10 +309,14 @@ object RegressionModel {
         tick_n = tick_n + 1
       }
     }
+    println("tick_n = %s".format(tick_n))
+    for (i <- 0 to 99) {
+      println("x_plot(i) = %s".format(x_plot(i)))
+    }
     val ctpr = col(tpr_plot)
     println("col(tpr).nrows = %s\nnnz(col(tpr)) = %s".format(ctpr.nrows, nnz(ctpr)))
     plot(col(x_plot), ctpr)
-}
+  }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
   def cross_validate(k: Int):Double = {
