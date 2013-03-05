@@ -45,7 +45,7 @@ object RegressionModel {
   var n = 0
 
   val sgd_tolerance = 5
-  val gamma = 0.0005
+  val gamma = 0.001
   val lambda = 1
   val k = 0
 
@@ -199,12 +199,12 @@ object RegressionModel {
 
       // Calculate error
       predictions = predict(beta, X)
-      var r_predictions = round(predictions)
+      var r_predictions:FMat = round(predictions)
       for (q <- 0 to xn - 1) {
-        if (r_predictions(q) > 5.0) {
-          r_predictions(q) = 5.0
-        } else if (r_predictions(q) < 1.0) {
-          r_predictions(q) = 1.0
+        if (r_predictions(0, q) > 5.0) {
+          r_predictions(0, q) = 5
+        } else if (r_predictions(0, q) < 1.0) {
+          r_predictions(0, q) = 1
         }
       }
 
@@ -220,7 +220,12 @@ object RegressionModel {
           println("Y #%s = %s".format(j, Y(0, j)))
           println("prediction #%s = %s".format(j, r_predictions(0, j)))
         }
-        println("num_errors = %s; \nrms_errors = %s\n\n\n".format(errors(i), mse_errors(i)))
+        println("num_errors = %s; \nmse_errors = %s\n\n\n".format(errors(i), mse_errors(i)))
+        for (q <- 0 to xn - 1) {
+          if (abs(r_predictions(0, q) - Y(0, q))(0, 0) > 4) {
+            println("Outlier r_prediction(0, %s) = %s.".format(q, r_predictions(0, q)))
+          }
+        }
       }
     }
 
@@ -246,7 +251,7 @@ object RegressionModel {
     var testing_set:BIDMat.SMat = X(?, 0 to set_size - 1)
     var testing_labels:BIDMat.FMat = Y(?, 0 to set_size - 1)
 
-    var beta = train2(training_set, training_labels, 100)
+    var beta = train2(training_set, training_labels, 200)
   }
 
   /** Performs k-fold cross validation, computing AUC and 1% lift scores. */
